@@ -1,0 +1,507 @@
+<!DOCTYPE html>
+<html lang="ro">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>LLM-D explicat simplu — ghid pentru oameni ocupați</title>
+<style>
+  :root {
+    --bg: #fdfcfa;
+    --surface: #ffffff;
+    --ink: #2d3142;
+    --ink-soft: #5c6273;
+    --accent: #4361ee;
+    --accent-soft: #eef1fe;
+    --green: #2a9d68;
+    --green-soft: #e8f6ef;
+    --orange: #e07a2f;
+    --orange-soft: #fdf1e6;
+    --red: #d94f4f;
+    --red-soft: #fdecec;
+    --purple: #7b5ea7;
+    --purple-soft: #f3eefa;
+    --border: #e8e6e1;
+    --radius: 14px;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    background: var(--bg);
+    color: var(--ink);
+    line-height: 1.65;
+    font-size: 17px;
+  }
+  .container { max-width: 880px; margin: 0 auto; padding: 0 24px; }
+
+  /* ── Nav ── */
+  nav {
+    position: sticky; top: 0; z-index: 100;
+    background: rgba(253,252,250,0.92);
+    backdrop-filter: blur(8px);
+    border-bottom: 1px solid var(--border);
+  }
+  nav .container { display: flex; align-items: center; gap: 18px; height: 56px; overflow-x: auto; }
+  nav .logo { font-weight: 800; color: var(--accent); white-space: nowrap; }
+  nav a { color: var(--ink-soft); text-decoration: none; font-size: 14px; white-space: nowrap; }
+  nav a:hover { color: var(--accent); }
+
+  /* ── Hero ── */
+  header { padding: 72px 0 48px; text-align: center; }
+  header h1 { font-size: clamp(30px, 5vw, 46px); line-height: 1.15; margin-bottom: 18px; }
+  header h1 span { color: var(--accent); }
+  header p.sub {
+    font-size: 19px; color: var(--ink-soft); max-width: 640px; margin: 0 auto 24px;
+  }
+  .badge-row { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; }
+  .badge {
+    background: var(--accent-soft); color: var(--accent);
+    padding: 6px 14px; border-radius: 999px; font-size: 13px; font-weight: 600;
+  }
+
+  /* ── Sections ── */
+  section { padding: 48px 0; }
+  section + section { border-top: 1px solid var(--border); }
+  h2 { font-size: 28px; margin-bottom: 8px; }
+  h2 .num {
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 34px; height: 34px; border-radius: 10px;
+    background: var(--accent); color: #fff; font-size: 17px; margin-right: 10px;
+    vertical-align: middle;
+  }
+  .lead { color: var(--ink-soft); font-size: 18px; margin-bottom: 24px; }
+  h3 { font-size: 20px; margin: 28px 0 10px; }
+  p + p { margin-top: 12px; }
+  strong { color: var(--ink); }
+
+  /* ── Cards ── */
+  .cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 16px; margin: 24px 0; }
+  .card {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: var(--radius); padding: 20px;
+  }
+  .card .icon { font-size: 28px; margin-bottom: 10px; }
+  .card h4 { font-size: 16px; margin-bottom: 6px; }
+  .card p { font-size: 14.5px; color: var(--ink-soft); }
+
+  /* ── Callouts ── */
+  .callout {
+    border-radius: var(--radius); padding: 18px 22px; margin: 24px 0;
+    border: 1px solid; font-size: 15.5px;
+  }
+  .callout.tip   { background: var(--green-soft);  border-color: #bfe5d2; }
+  .callout.warn  { background: var(--orange-soft); border-color: #f3d9bd; }
+  .callout.idea  { background: var(--accent-soft); border-color: #ccd6fb; }
+  .callout .label { font-weight: 700; display: block; margin-bottom: 4px; }
+  .callout.tip .label { color: var(--green); }
+  .callout.warn .label { color: var(--orange); }
+  .callout.idea .label { color: var(--accent); }
+
+  /* ── Analogy box ── */
+  .analogy {
+    background: var(--purple-soft); border: 1px solid #e0d4f0;
+    border-radius: var(--radius); padding: 20px 24px; margin: 24px 0;
+  }
+  .analogy .label { color: var(--purple); font-weight: 700; font-size: 13px; text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 6px; }
+
+  /* ── Diagrams ── */
+  .diagram {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: var(--radius); padding: 24px; margin: 24px 0;
+    overflow-x: auto;
+  }
+  .diagram .title { font-size: 13px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; color: var(--ink-soft); margin-bottom: 18px; text-align: center; }
+  .flow { display: flex; align-items: center; justify-content: center; gap: 8px; flex-wrap: wrap; }
+  .node {
+    padding: 10px 16px; border-radius: 10px; font-size: 14px; font-weight: 600;
+    text-align: center; min-width: 90px;
+  }
+  .node small { display: block; font-weight: 400; font-size: 12px; opacity: 0.75; }
+  .n-blue   { background: var(--accent-soft); color: var(--accent); border: 1.5px solid #ccd6fb; }
+  .n-green  { background: var(--green-soft);  color: var(--green);  border: 1.5px solid #bfe5d2; }
+  .n-orange { background: var(--orange-soft); color: var(--orange); border: 1.5px solid #f3d9bd; }
+  .n-purple { background: var(--purple-soft); color: var(--purple); border: 1.5px solid #e0d4f0; }
+  .n-gray   { background: #f4f3f0; color: var(--ink-soft); border: 1.5px solid var(--border); }
+  .arrow { color: #b9bdc9; font-size: 20px; font-weight: 700; }
+  .stack-col { display: flex; flex-direction: column; gap: 8px; align-items: stretch; }
+
+  /* ── Tiers (memorie) ── */
+  .tiers { display: flex; flex-direction: column; gap: 0; margin: 24px 0; }
+  .tier { display: flex; align-items: center; gap: 16px; padding: 14px 20px; border: 1px solid var(--border); background: var(--surface); }
+  .tier:first-child { border-radius: var(--radius) var(--radius) 0 0; }
+  .tier:last-child { border-radius: 0 0 var(--radius) var(--radius); }
+  .tier + .tier { border-top: none; }
+  .tier .bar { height: 12px; border-radius: 6px; }
+  .tier .info { flex: 1; }
+  .tier .info b { display: block; font-size: 15px; }
+  .tier .info span { font-size: 13.5px; color: var(--ink-soft); }
+  .tier .speed { font-size: 13px; font-weight: 700; white-space: nowrap; }
+
+  /* ── Table ── */
+  table { width: 100%; border-collapse: collapse; margin: 24px 0; font-size: 15px; background: var(--surface); border-radius: var(--radius); overflow: hidden; border: 1px solid var(--border); }
+  th, td { padding: 12px 16px; text-align: left; border-bottom: 1px solid var(--border); vertical-align: top; }
+  th { background: #f7f6f3; font-size: 13.5px; text-transform: uppercase; letter-spacing: 0.04em; color: var(--ink-soft); }
+  tr:last-child td { border-bottom: none; }
+  td:first-child { font-weight: 600; }
+
+  /* ── Stats ── */
+  .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 16px; margin: 24px 0; }
+  .stat { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 20px; text-align: center; }
+  .stat .big { font-size: 34px; font-weight: 800; color: var(--accent); }
+  .stat .lbl { font-size: 13.5px; color: var(--ink-soft); margin-top: 4px; }
+
+  /* ── Glossary ── */
+  details {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 10px; padding: 14px 18px; margin-bottom: 10px;
+  }
+  details summary { cursor: pointer; font-weight: 600; font-size: 15.5px; }
+  details p { margin-top: 10px; font-size: 14.5px; color: var(--ink-soft); }
+  code {
+    background: #f1f0ec; padding: 2px 7px; border-radius: 6px;
+    font-size: 0.86em; font-family: "SF Mono", ui-monospace, Menlo, Consolas, monospace;
+  }
+
+  ul.nice { padding-left: 0; list-style: none; margin: 16px 0; }
+  ul.nice li { padding: 8px 0 8px 30px; position: relative; }
+  ul.nice li::before { content: "✓"; position: absolute; left: 4px; color: var(--green); font-weight: 800; }
+
+  footer { padding: 40px 0 60px; text-align: center; color: var(--ink-soft); font-size: 14px; border-top: 1px solid var(--border); }
+  footer a { color: var(--accent); }
+
+  @media (max-width: 600px) {
+    body { font-size: 16px; }
+    .flow { flex-direction: column; }
+    .arrow { transform: rotate(90deg); }
+  }
+</style>
+</head>
+<body>
+
+<nav>
+  <div class="container">
+    <span class="logo">LLM-D 101</span>
+    <a href="#problema">Problema</a>
+    <a href="#kvcache">KV Cache</a>
+    <a href="#routing">Routing</a>
+    <a href="#pd">P/D Split</a>
+    <a href="#moe">MoE / Wide EP</a>
+    <a href="#offloading">Offloading</a>
+    <a href="#kserve">vs. KServe</a>
+    <a href="#glosar">Glosar</a>
+    <a href="llmd-simulatoare.html" style="color:var(--accent);font-weight:700;">🎛️ Simulatoare</a>
+  </div>
+</nav>
+
+<header>
+  <div class="container">
+    <h1>LLM-D, explicat <span>pe înțelesul tuturor</span></h1>
+    <p class="sub">Ai folosit KServe acum câțiva ani și între timp lumea inferenței s-a schimbat complet? Acest ghid te aduce la zi: ce e LLM-D, de ce există și ce înseamnă toți termenii noi.</p>
+    <div class="badge-row">
+      <span class="badge">Open Source</span>
+      <span class="badge">Kubernetes-native</span>
+      <span class="badge">vLLM la bază</span>
+      <span class="badge">IBM · Red Hat · AMD · Google · NVIDIA</span>
+    </div>
+  </div>
+</header>
+
+<section id="tldr">
+  <div class="container">
+    <h2>⚡ TL;DR — versiunea de 30 de secunde</h2>
+    <p class="lead">LLM-D este un <strong>stack open source de inferență distribuită</strong> pentru LLM-uri, lansat în mai 2025. Ia vLLM (motorul care rulează efectiv modelul) și îl orchestrează inteligent pe Kubernetes: rutare conștientă de cache, separare prefill/decode, autoscaling și suport pentru modele uriașe pe zeci de GPU-uri.</p>
+    <div class="cards">
+      <div class="card"><div class="icon">🧠</div><h4>Scheduler inteligent</h4><p>Rutează cererile către pod-ul care are deja contextul în cache, nu round-robin orbește.</p></div>
+      <div class="card"><div class="icon">✂️</div><h4>Prefill/Decode separat</h4><p>Cele două faze ale inferenței rulează pe instanțe diferite, fiecare optimizată pentru treaba ei.</p></div>
+      <div class="card"><div class="icon">📈</div><h4>Autoscaler pentru AI</h4><p>Scalează în sus/jos pe baza metricilor de inferență, inclusiv scale-to-zero pentru modele rar folosite.</p></div>
+    </div>
+    <div class="callout idea">
+      <span class="label">De ce să-ți pese</span>
+      Cifrele din producție: de la <strong>3× latență mai bună</strong> pentru prompturi lungi, până la <strong>57× mai rapid</strong> pe anumite workload-uri cu rutare conștientă de cache. Nu e magie — e doar evitarea muncii deja făcute.
+    </div>
+  </div>
+</section>
+
+<section id="problema">
+  <div class="container">
+    <h2><span class="num">1</span>De ce inferența LLM nu e un workload web obișnuit</h2>
+    <p class="lead">Pe vremea KServe-ului clasic, un request era un request: intra, era procesat, ieșea. Stateless, predictibil, load balancer simplu. Inferența LLM a stricat toate aceste presupuneri.</p>
+    <div class="cards">
+      <div class="card"><div class="icon">📏</div><h4>Cereri imprevizibile</h4><p>Un prompt poate avea 50 de tokeni sau 50.000. Lungimea contextului schimbă dramatic costul de compute și memorie. Nu poți planifica capacitatea ca la un API REST.</p></div>
+      <div class="card"><div class="icon">💾</div><h4>Stare (state) peste tot</h4><p>Fiecare conversație construiește un KV cache. Dacă următoarea cerere ajunge pe alt pod, totul se recalculează de la zero. Load balancer-ul clasic habar n-are de asta.</p></div>
+      <div class="card"><div class="icon">⚖️</div><h4>SLO-uri scumpe</h4><p>Clienții plătesc pentru latență garantată. O decizie proastă de scheduling = GPU-uri irosite sau SLO ratat. Ambele te costă bani serioși.</p></div>
+      <div class="card"><div class="icon">🧩</div><h4>Două faze diferite</h4><p>Inferența nu mai e un monolit: prefill (procesarea promptului) și decode (generarea răspunsului) au nevoi de hardware complet diferite.</p></div>
+    </div>
+    <div class="analogy">
+      <div class="label">Analogie</div>
+      Load balancer-ul clasic e ca un dispecer de taxi care trimite clienții la mașini la întâmplare. LLM-D e dispecerul care știe care șofer <em>a mai dus clientul ăsta ieri și ține minte adresa</em> — drumul devine de 10 ori mai scurt.
+    </div>
+  </div>
+</section>
+
+<section id="kvcache">
+  <div class="container">
+    <h2><span class="num">2</span>KV Cache — conceptul central al întregii povești</h2>
+    <p class="lead">Dacă înțelegi un singur lucru din această pagină, să fie acesta. Aproape toate optimizările din LLM-D se învârt în jurul KV cache-ului.</p>
+
+    <h3>Ce este?</h3>
+    <p>Transformerele înțeleg contextul prin <strong>self-attention</strong>: fiecare token se compară cu toți tokenii dinaintea lui. Asta scalează <strong>pătratic</strong> cu lungimea contextului — devine rapid foarte scump. Soluția: salvezi rezultatele intermediare (cheile <em>K</em> și valorile <em>V</em>) și le <strong>refolosești</strong> în loc să le recalculezi la fiecare pas. Acesta e KV cache-ul.</p>
+
+    <div class="diagram">
+      <div class="title">Fără cache vs. cu cache</div>
+      <div class="flow">
+        <div class="stack-col">
+          <div class="node n-red" style="background:var(--red-soft);color:var(--red);border:1.5px solid #f0c4c4;">Fără cache<small>recalculezi TOT contextul la fiecare token generat 🐌</small></div>
+          <div class="node n-green">Cu KV cache<small>calculezi doar tokenul nou, restul vine din memorie ⚡</small></div>
+        </div>
+      </div>
+    </div>
+
+    <h3>De ce contează atât de mult?</h3>
+    <p>Refolosirea unui prefix din cache e <strong>cu cel puțin un ordin de mărime mai ieftină</strong> decât recalcularea lui (prefill). Manus (platformă de agenți AI, acum la Meta) a spus-o direct: <em>„rata de cache hit a KV cache-ului este cea mai importantă metrică în producție”</em>. De-asta OpenAI și alții îți taxează tokenii cache-uiți <strong>de 10× mai ieftin</strong>.</p>
+
+    <div class="callout tip">
+      <span class="label">Exemplu concret de la meetup</span>
+      Prompt de 10.000 de tokeni pe Qwen 32B: prima cerere durează <strong>4,3 secunde</strong>. A doua cerere identică (cache hit): <strong>~0,6 secunde</strong>. De 7 ori mai rapid, zero compute irosit.
+    </div>
+
+    <h3>Unde se vede asta în practică?</h3>
+    <ul class="nice">
+      <li><strong>Chat multi-turn</strong> — la fiecare replică refolosești toată istoria conversației de până atunci.</li>
+      <li><strong>Agenți AI</strong> — la fiecare apel de tool, contextul agentului e istoricul complet. Raportul input/output poate fi 100:1 — aproape totul e prefix refolosibil.</li>
+      <li><strong>Branching paralel</strong> — mai mulți agenți care pleacă din același context partajat (tree-of-thought, swarms).</li>
+    </ul>
+
+    <div class="callout warn">
+      <span class="label">Problema</span>
+      KV cache-ul crește enorm. Chiar și pentru un model mic de 7B, un workload conversațional tipic ajunge rapid la <strong>terabytes</strong> de KV cache. Nu încape în memoria GPU. De aici nevoia de rutare inteligentă (secțiunea 3) și offloading (secțiunea 6).
+    </div>
+  </div>
+</section>
+
+<section id="routing">
+  <div class="container">
+    <h2><span class="num">3</span>Inference Scheduler — rutare inteligentă, nu round-robin</h2>
+    <p class="lead">Când rulezi mai multe replici ale unui model, KV cache-ul devine fragmentat între pod-uri. Întrebarea-cheie: <em>unde trimiți următoarea cerere?</em></p>
+
+    <div class="diagram">
+      <div class="title">Load balancer naiv vs. scheduler conștient de cache</div>
+      <div class="flow">
+        <div class="node n-gray">Cerere<small>turul 2 din conversație</small></div>
+        <div class="arrow">→</div>
+        <div class="stack-col">
+          <div class="node n-red" style="background:var(--red-soft);color:var(--red);border:1.5px solid #f0c4c4;">LB naiv → Pod B<small>cache miss, recalculează tot 😩</small></div>
+          <div class="node n-green">LLM-D → Pod A<small>cache hit, contextul e deja acolo 🎯</small></div>
+        </div>
+      </div>
+    </div>
+
+    <p>LLM-D construiește pe <strong>Gateway API Inference Extension</strong> din Kubernetes (deci nu reinventează roata) și adaugă plugin-uri de rutare specifice inferenței:</p>
+    <ul class="nice">
+      <li><strong>Prefix-aware routing</strong> — fiecare pod emite evenimente despre ce are în cache; scheduler-ul ține o hartă globală și trimite cererea acolo unde e prefixul.</li>
+      <li><strong>Load-aware routing</strong> — se uită la metricile vLLM (coadă, utilizare) prin Prometheus și evită pod-urile aglomerate.</li>
+      <li><strong>Combinația celor două</strong> — balansează afinitatea de cache cu distribuția încărcării. Extensibil: poți scrie propriul plugin (Endpoint Picker).</li>
+    </ul>
+
+    <div class="callout tip">
+      <span class="label">Rezultat din benchmark</span>
+      Pe un cluster de 16× H100: rutarea naivă și cea doar load-aware <strong>explodează în TTFT</strong> pe măsură ce crește traficul. Rutarea precisă prefix-aware atinge maximul teoretic al clusterului. Pe unele workload-uri: până la <strong>57× mai rapid</strong>.
+    </div>
+  </div>
+</section>
+
+<section id="pd">
+  <div class="container">
+    <h2><span class="num">4</span>Prefill/Decode Disaggregation — divide et impera</h2>
+    <p class="lead">Inferența are două faze cu personalități complet diferite. LLM-D le separă pe instanțe dedicate.</p>
+
+    <div class="diagram">
+      <div class="title">Cele două faze ale inferenței</div>
+      <div class="flow">
+        <div class="node n-orange">PREFILL<small>procesează promptul<br>compute-bound 🔥<br>determină TTFT</small></div>
+        <div class="arrow">→</div>
+        <div class="node n-purple">transfer KV cache<small>NIXL / RDMA / TCP</small></div>
+        <div class="arrow">→</div>
+        <div class="node n-blue">DECODE<small>generează token cu token<br>memory-bound 💾<br>determină viteza per token</small></div>
+      </div>
+    </div>
+
+    <div class="analogy">
+      <div class="label">Analogie</div>
+      E ca o bucătărie de restaurant: <strong>prefill</strong> e mise-en-place-ul (tai legume intens, la foc continuu — muncă de forță), <strong>decode</strong> e plating-ul (asamblezi farfurie cu farfurie — muncă de ritm). Dacă același bucătar face ambele, se blochează reciproc. Le separi → fiecare stație e dimensionată pentru treaba ei.
+    </div>
+
+    <h3>Detaliile care contează</h3>
+    <p>Anul trecut era subiect experimental; <strong>azi rulează în producție</strong> (Mistral și alții). Dar nu e gratis: trebuie să orchestrezi câți prefilleri vs. câți decoderi ai, ce nivel de paralelism folosește fiecare, și cum se transferă KV cache-ul între ei.</p>
+    <div class="callout warn">
+      <span class="label">Nuanță importantă de la meetup</span>
+      P/D disaggregation <strong>nu ajută mereu</strong>. La concurență foarte mică sau foarte mare, beneficiul dispare. În zona de mijloc poți câștiga ~<strong>1,5× throughput</strong>. Depinde de model și workload — exact de-asta LLM-D oferă „well-lit paths”: rețete testate, ca să nu explorezi singur tot spațiul de knob-uri.
+    </div>
+    <p>Pentru transferul KV între prefilleri și decoderi, LLM-D folosește <strong>NIXL</strong> (bibliotecă de transport din stack-ul NVIDIA Dynamo) — peer-to-peer pe RDMA, sau, contribuție recentă, pe <strong>TCP simplu</strong> (pentru cei fără rețele RDMA scumpe).</p>
+  </div>
+</section>
+
+<section id="moe">
+  <div class="container">
+    <h2><span class="num">5</span>MoE și Wide Expert Parallelism — modelele uriașe de azi</h2>
+    <p class="lead">Aproape toate modelele mari recente (DeepSeek, GPT-OSS, etc.) sunt <strong>Mixture-of-Experts</strong>. Asta schimbă fundamental cum le servești.</p>
+
+    <h3>Ce e MoE, pe scurt?</h3>
+    <p>În loc de un strat dens uriaș prin care trec toți tokenii, modelul are <strong>sute de „experți” mici</strong> (ex. DeepSeek: 256 de experți) și un <strong>router</strong> care alege doar câțiva (ex. 8) pentru fiecare token. Modelul e uriaș pe hârtie, dar activează puțin per token — <em>sparsity</em>. Empiric, modelele sparse pur și simplu performează mai bine la același cost de compute.</p>
+
+    <div class="analogy">
+      <div class="label">Analogie</div>
+      Un spital: nu trece fiecare pacient pe la toți cei 256 de medici. Recepția (router-ul) îl trimite la cei 8 specialiști relevanți. Eficient — dar dacă toată lumea vine cu aceeași problemă, cardiologul e copleșit iar dermatologul stă degeaba. Asta e <em>expert imbalance</em>.
+    </div>
+
+    <h3>Consecințele pentru serving</h3>
+    <div class="cards">
+      <div class="card"><div class="icon">↔️</div><h4>De la TP la EP/DP</h4><p>Tensor parallelism nu mai are sens (dimensiunile interne devin prea mici). Treci la expert parallelism + data parallelism, pe mai multe noduri — 16, 32, chiar 96 de GPU-uri ca un singur sistem.</p></div>
+      <div class="card"><div class="icon">⚖️</div><h4>EPLB</h4><p>Expert Parallel Load Balancing: experții „fierbinți” sunt replicați și rebalansați online, în timpul inferenței, ca niciun GPU să nu devină gâtul de sticlă.</p></div>
+      <div class="card"><div class="icon">🔀</div><h4>DBO</h4><p>Dual Batch Overlap: forward pass-ul e împărțit în două micro-batch-uri, ca să suprapui compute-ul unuia cu comunicarea celuilalt. Pe H200: până la 2× câștig.</p></div>
+      <div class="card"><div class="icon">👥</div><h4>LeaderWorkerSet</h4><p>API nou de Kubernetes care permite rularea unui grup de pod-uri ca o „gașcă” coordonată (gang scheduling), cu un lider care încarcă modelul — esențial pentru deployments multi-nod.</p></div>
+    </div>
+
+    <div class="stats">
+      <div class="stat"><div class="big">2,2k</div><div class="lbl">tokeni/sec/GPU — DeepSeek R1 pe H200 cu wide EP</div></div>
+      <div class="stat"><div class="big">10–15k</div><div class="lbl">ținta pe GB200 (NVLink multi-nod e ~10× mai rapid)</div></div>
+      <div class="stat"><div class="big">8×</div><div class="lbl">mai mult KV cache doar trecând de la TP la DP pe DeepSeek (MLA)</div></div>
+    </div>
+
+    <p>Regula practică de la meetup: <strong>decode merge lat</strong> (EP32–EP96, vrea concurență mare și KV cache mult), <strong>prefill rămâne îngust</strong> (EP16) — dacă ai nevoie de mai mult throughput de prefill, pur și simplu adaugi mai mulți prefilleri.</p>
+  </div>
+</section>
+
+<section id="offloading">
+  <div class="container">
+    <h2><span class="num">6</span>KV Cache Offloading — când memoria GPU nu mai ajunge</h2>
+    <p class="lead">Memoria GPU e cea mai scumpă resursă din cluster, iar KV cache-ul crește la terabytes. Soluția: o ierarhie de niveluri de stocare.</p>
+
+    <div class="tiers">
+      <div class="tier">
+        <div class="bar" style="width:60px;background:var(--accent);"></div>
+        <div class="info"><b>1. Memorie GPU (HBM)</b><span>cea mai rapidă, cea mai scumpă, cea mai mică — aici lucrează vLLM nativ</span></div>
+        <div class="speed" style="color:var(--accent);">⚡⚡⚡</div>
+      </div>
+      <div class="tier">
+        <div class="bar" style="width:140px;background:var(--green);"></div>
+        <div class="info"><b>2. RAM / CPU (DRAM)</b><span>offloading asincron GPU→CPU prin DMA; vine out-of-the-box în vLLM</span></div>
+        <div class="speed" style="color:var(--green);">⚡⚡</div>
+      </div>
+      <div class="tier">
+        <div class="bar" style="width:260px;background:var(--orange);"></div>
+        <div class="info"><b>3. Storage / Disk (POSIX)</b><span>conectorul de filesystem din LLM-D — orice storage POSIX, inclusiv filesystem paralel; uriaș, dar mai lent</span></div>
+        <div class="speed" style="color:var(--orange);">⚡</div>
+      </div>
+    </div>
+
+    <p>Cum funcționează în practică: GPU-ul se umple → evicțiile încep → performanța ar scădea, dar <strong>nivelul CPU preia cache hit-urile</strong> → când se umple și el, <strong>nivelul de storage susține workload-ul</strong> mult mai departe. Rezultat: același hardware servește mult mai mulți utilizatori înainte să „lovești zidul”.</p>
+
+    <p>Pe lângă offloading-ul vertical („nord-sud”), există și <strong>partajare orizontală („est-vest”)</strong>: un tier de storage comun din care orice pod poate citi KV cache calculat de altul — <em>computezi o dată, refolosești oriunde</em>. Aici intră în joc și LMCache sau KVBM ca backend-uri.</p>
+
+    <div class="callout idea">
+      <span class="label">Ce urmează (LLM-D 0.6+)</span>
+      Scheduling <strong>conștient de workload</strong>: scheduler care înțelege programul unui agent (nu cereri izolate), evicție bazată pe context în loc de LRU naiv (păstrezi system prompt-ul, știi că agentul plecat la un tool call se întoarce), și mutare proactivă a stării înainte ca cererea să sosească. Plus suport pentru reinforcement learning, unde inferența devine gâtul de sticlă al antrenării.
+    </div>
+  </div>
+</section>
+
+<section id="kserve">
+  <div class="container">
+    <h2><span class="num">7</span>Vii din lumea KServe? Iată ce s-a schimbat</h2>
+    <p class="lead">KServe rămâne excelent pentru serving de modele „clasice” (sklearn, XGBoost, modele mici de deep learning). Dar LLM-urile au cerințe pe care arhitectura request/response stateless nu le acoperă.</p>
+    <table>
+      <tr><th>Concept</th><th>Lumea KServe (atunci)</th><th>Lumea LLM-D (acum)</th></tr>
+      <tr><td>Unitatea de serving</td><td>Un pod = un model, stateless</td><td>Grup de pod-uri coordonate (prefill + decode, multi-nod, gang scheduling cu LeaderWorkerSet)</td></tr>
+      <tr><td>Load balancing</td><td>Round-robin / least-connections</td><td>Rutare pe baza KV cache-ului și a metricilor de inferență (Gateway API Inference Extension)</td></tr>
+      <tr><td>Stare</td><td>Nu există — fiecare request e independent</td><td>KV cache-ul e rege: urmărit global, rutat cu afinitate, offloaded pe CPU/disk, partajat între pod-uri</td></tr>
+      <tr><td>Autoscaling</td><td>HPA / KNative pe CPU, RPS</td><td>Variant Autoscaler pe metrici de inferență + SLO; reactiv sau proactiv; scale-to-zero</td></tr>
+      <tr><td>Costul unei decizii proaste</td><td>Câteva ms de latență</td><td>Recalcularea unui prefill de 50k tokeni — ordine de mărime în cost și latență</td></tr>
+      <tr><td>Motorul de inferență</td><td>Triton, TorchServe, sklearn server…</td><td>vLLM (primar), SGLang (în curs de integrare)</td></tr>
+    </table>
+    <div class="callout tip">
+      <span class="label">Vestea bună pentru tine</span>
+      Filosofia LLM-D e <strong>„nu reinventăm roata”</strong>: totul e construit pe Kubernetes standard — Gateway API, CRD-uri, Helm charts, Prometheus. Dacă știi să operezi un cluster Kubernetes (și știi, din era KServe), bariera de intrare e joasă. În plus, „well-lit paths” = blueprints gata testate și benchmark-uite pentru pattern-urile comune, cu blog post detaliat pentru fiecare.
+    </div>
+    <div class="callout warn">
+      <span class="label">Realitatea din teren (lecția AMD de la meetup)</span>
+      Deployment-urile nu merg mereu „din prima”: versiuni de CRD-uri nepotrivite, node affinity pe clustere partajate, căi RDMA/NIXL care nu se aliniază cu imaginea de container. Nimic insurmontabil — dar verifică alinierea dintre imaginea vLLM, driverele de rețea și stack-ul hardware (ROCm pe AMD, CUDA pe NVIDIA) înainte de a da vina pe LLM-D.
+    </div>
+  </div>
+</section>
+
+<section id="arhitectura">
+  <div class="container">
+    <h2><span class="num">8</span>Imaginea de ansamblu — cum se leagă totul</h2>
+    <div class="diagram">
+      <div class="title">Arhitectura LLM-D, simplificată</div>
+      <div class="flow" style="flex-direction:column;gap:12px;">
+        <div class="node n-gray" style="width:100%;max-width:560px;">👤 Cereri de inferență (chat, agenți, API)</div>
+        <div class="arrow" style="transform:rotate(90deg);">→</div>
+        <div class="node n-blue" style="width:100%;max-width:560px;">🧠 Inference Scheduler<small>Gateway API + plugin-uri: prefix-aware, load-aware, custom</small></div>
+        <div class="arrow" style="transform:rotate(90deg);">→</div>
+        <div class="flow">
+          <div class="node n-orange">Prefilleri<small>vLLM, EP16<br>scalezi pe orizontală</small></div>
+          <div class="node n-purple">NIXL<small>transfer KV<br>RDMA sau TCP</small></div>
+          <div class="node n-blue">Decoderi<small>vLLM, EP32–96<br>LeaderWorkerSet</small></div>
+        </div>
+        <div class="arrow" style="transform:rotate(90deg);">→</div>
+        <div class="node n-green" style="width:100%;max-width:560px;">💾 Niveluri KV cache: GPU → CPU → Storage<small>+ partajare est-vest între pod-uri (LMCache, filesystem connector)</small></div>
+        <div class="flow" style="margin-top:8px;">
+          <div class="node n-gray">📈 Variant Autoscaler<small>reactiv + proactiv, scale-to-zero</small></div>
+          <div class="node n-gray">📊 Prometheus<small>metrici vLLM pentru rutare</small></div>
+        </div>
+      </div>
+    </div>
+    <p>Trei piloni de reținut: <strong>(1)</strong> scheduler-ul inteligent care rutează pe stare, <strong>(2)</strong> orchestrarea prefill/decode disaggregat cu transfer de KV, <strong>(3)</strong> autoscaler-ul specializat. Totul cross-platform: NVIDIA, AMD (ROCm), Google TPU.</p>
+  </div>
+</section>
+
+<section id="glosar">
+  <div class="container">
+    <h2><span class="num">9</span>Glosar rapid — toți termenii într-un loc</h2>
+    <p class="lead">Click pe oricare pentru explicație.</p>
+    <details><summary>KV Cache</summary><p>Memoria de lucru a modelului: cheile (K) și valorile (V) calculate de self-attention pentru tokenii deja procesați, salvate ca să nu fie recalculate. Refolosirea lui e de ≥10× mai ieftină decât recalcularea.</p></details>
+    <details><summary>Prefill</summary><p>Prima fază a inferenței: procesarea întregului prompt deodată. Intensivă în compute. Determină time-to-first-token (TTFT).</p></details>
+    <details><summary>Decode</summary><p>A doua fază: generarea răspunsului, token cu token (autoregresiv). Limitată de lățimea de bandă a memoriei, nu de compute.</p></details>
+    <details><summary>P/D Disaggregation</summary><p>Separarea prefill-ului și decode-ului pe instanțe dedicate, fiecare dimensionată și configurată pentru faza ei, cu transfer de KV cache între ele.</p></details>
+    <details><summary>TTFT / Time To First Token</summary><p>Cât așteaptă utilizatorul până apare primul cuvânt din răspuns. Metrica de UX numărul 1, dominată de prefill (sau evitată complet printr-un cache hit).</p></details>
+    <details><summary>MoE / Mixture of Experts</summary><p>Arhitectură în care modelul are sute de sub-rețele („experți”) și un router care activează doar câțiva per token. Model uriaș pe hârtie, compute mic per token.</p></details>
+    <details><summary>EP / Expert Parallelism și Wide EP</summary><p>Distribuirea experților unui model MoE pe mai multe GPU-uri/noduri. „Wide” = foarte multe GPU-uri (32–96) lucrând ca un singur sistem de inferență.</p></details>
+    <details><summary>EPLB / Expert Parallel Load Balancing</summary><p>Replicarea și rebalansarea online a experților „fierbinți”, ca niciun GPU să nu devină bottleneck când distribuția tokenilor diferă de cea de la antrenare.</p></details>
+    <details><summary>DBO / Dual Batch Overlap</summary><p>Împărțirea forward pass-ului în două micro-batch-uri pentru a suprapune compute-ul unuia cu comunicarea celuilalt. ~2× câștig pe H200; inutil pe GB200 (NVLink-ul e prea rapid ca să mai conteze).</p></details>
+    <details><summary>NIXL</summary><p>Bibliotecă de transport (din NVIDIA Dynamo) pentru mutarea KV cache-ului între noduri: peer-to-peer pe RDMA sau, mai nou, pe TCP. AMD are echivalentul propriu, RIXL.</p></details>
+    <details><summary>LeaderWorkerSet (LWS)</summary><p>API Kubernetes nou care rulează un grup de pod-uri ca o unitate coordonată (un lider + workeri), necesar pentru servirea modelelor care nu încap pe un singur nod.</p></details>
+    <details><summary>Gateway API Inference Extension</summary><p>Extensie Kubernetes care permite tratarea cererilor de inferență cu metadate și metrici specifice, baza pe care LLM-D își construiește scheduler-ul. Plugin-urile de rutare se numesc Endpoint Pickers.</p></details>
+    <details><summary>Prefix-aware routing</summary><p>Rutarea unei cereri către pod-ul care are deja prefixul (istoricul conversației) în KV cache, în loc de distribuție oarbă a traficului.</p></details>
+    <details><summary>Well-lit paths</summary><p>Filosofia LLM-D: blueprints validate și benchmark-uite pentru pattern-urile comune de deployment, ca să nu explorezi singur sute de combinații de knob-uri. Fiecare are ghid + blog post.</p></details>
+    <details><summary>Variant Autoscaler</summary><p>Autoscaler-ul LLM-D: mod reactiv (pe utilizare) sau proactiv (decide inclusiv configurația P/D), cu scale-to-zero pentru modele rar folosite.</p></details>
+    <details><summary>SLO / Service Level Objective</summary><p>Garanția de performanță (ex. latență) pe care o promiți clienților. În inferență, SLO-ul e moneda: pe el facturezi, pe el dimensionezi clusterul.</p></details>
+    <details><summary>TP / DP — Tensor / Data Parallelism</summary><p>TP: spargi straturile unui model pe mai multe GPU-uri (clasic, pentru modele dense). DP: rulezi copii paralele care procesează cereri diferite. Pe MoE cu MLA (DeepSeek), DP în loc de TP îți dă ~8× mai mult spațiu de KV cache, pentru că TP l-ar replica.</p></details>
+    <details><summary>vLLM</summary><p>Motorul de inferență open source de la baza LLM-D. A pionierat PagedAttention (management eficient al memoriei GPU pentru KV cache) și automatic prefix caching.</p></details>
+    <details><summary>SGLang</summary><p>Motor de inferență alternativ la vLLM; LLM-D adaugă suport de bază pentru el, ca stack-ul să devină agnostic și la nivelul motorului.</p></details>
+  </div>
+</section>
+
+<section id="implicare">
+  <div class="container">
+    <h2><span class="num">10</span>Vrei să te implici sau doar să sapi mai adânc?</h2>
+    <p class="lead">Proiectul e tânăr (lansat în mai 2025), în aplicare pentru CNCF Sandbox, cu 8 grupuri de interes (SIG-uri) active — inclusiv P/D disaggregation, KV management și, recent, RL.</p>
+    <ul class="nice">
+      <li><strong>Site oficial:</strong> <a href="https://llm-d.ai">llm-d.ai</a> — ghidurile „well-lit paths” sunt cel mai bun punct de plecare practic.</li>
+      <li><strong>GitHub:</strong> organizația <code>llm-d</code> — repo principal <code>llm-d/llm-d</code>, plus <code>llm-d-kv-cache</code> și <code>llm-d-inference-scheduler</code>.</li>
+      <li><strong>Slack + community calls</strong> — deschise oricui; acolo se decide direcția proiectului.</li>
+      <li><strong>Nu-ți trebuie matematică de ML</strong> — e infrastructură distribuită: networking, observabilitate, Kubernetes, Grafana. Exact lumea din care vii.</li>
+      <li><strong>Downstream comercial:</strong> face parte din Red Hat AI, dacă vrei suport enterprise.</li>
+    </ul>
+  </div>
+</section>
+
+<footer>
+  <div class="container">
+    <p>Ghid creat pe baza primului meetup LLM-D (talks: IBM Research, AMD, Red Hat) · iunie 2026</p>
+    <p style="margin-top:8px;">P.S. Gluma de la meetup: doi LLM-i intră într-un bar. Primul comandă o bere — „3 dolari”. Al doilea: „și mie la fel, dar plătesc <em>cash</em>” 🥁 — pentru că tokenii cache-uiți costă de 10× mai puțin.</p>
+  </div>
+</footer>
+
+</body>
+</html>

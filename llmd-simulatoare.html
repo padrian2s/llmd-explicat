@@ -1,0 +1,927 @@
+<!DOCTYPE html>
+<html lang="ro">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Simulatoare LLM-D — vezi cu ochii tăi cum funcționează</title>
+<style>
+  :root {
+    --bg: #fdfcfa;
+    --surface: #ffffff;
+    --ink: #2d3142;
+    --ink-soft: #5c6273;
+    --accent: #4361ee;
+    --accent-soft: #eef1fe;
+    --green: #2a9d68;
+    --green-soft: #e8f6ef;
+    --orange: #e07a2f;
+    --orange-soft: #fdf1e6;
+    --red: #d94f4f;
+    --red-soft: #fdecec;
+    --purple: #7b5ea7;
+    --purple-soft: #f3eefa;
+    --border: #e8e6e1;
+    --radius: 14px;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
+    background: var(--bg); color: var(--ink); line-height: 1.6; font-size: 16px;
+  }
+  .container { max-width: 980px; margin: 0 auto; padding: 0 20px; }
+
+  header { padding: 40px 0 24px; text-align: center; }
+  header h1 { font-size: clamp(26px, 4.5vw, 38px); }
+  header h1 span { color: var(--accent); }
+  header p { color: var(--ink-soft); max-width: 640px; margin: 10px auto 0; }
+  header a.back { font-size: 14px; color: var(--accent); text-decoration: none; }
+
+  /* tabs */
+  .tabs { display: flex; gap: 8px; flex-wrap: wrap; justify-content: center; padding: 16px 0; position: sticky; top: 0; background: rgba(253,252,250,0.95); backdrop-filter: blur(8px); z-index: 50; border-bottom: 1px solid var(--border); }
+  .tab {
+    border: 1px solid var(--border); background: var(--surface); color: var(--ink-soft);
+    padding: 8px 16px; border-radius: 999px; font-size: 14px; font-weight: 600; cursor: pointer;
+  }
+  .tab.active { background: var(--accent); border-color: var(--accent); color: #fff; }
+
+  section.sim { display: none; padding: 32px 0 56px; }
+  section.sim.active { display: block; }
+  h2 { font-size: 24px; margin-bottom: 6px; }
+  .lead { color: var(--ink-soft); margin-bottom: 20px; max-width: 760px; }
+
+  .panel {
+    background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius);
+    padding: 20px; margin-bottom: 16px;
+  }
+  .controls { display: flex; gap: 12px; flex-wrap: wrap; align-items: center; margin-bottom: 16px; }
+  button.btn {
+    background: var(--accent); color: #fff; border: none; padding: 9px 18px;
+    border-radius: 10px; font-size: 14px; font-weight: 700; cursor: pointer;
+  }
+  button.btn.secondary { background: #f1f0ec; color: var(--ink); }
+  button.btn:active { transform: scale(0.97); }
+  .toggle { display: inline-flex; align-items: center; gap: 8px; font-size: 14px; font-weight: 600; cursor: pointer; user-select: none; }
+  .toggle input { width: 18px; height: 18px; accent-color: var(--accent); }
+  .ctrl label { font-size: 13px; color: var(--ink-soft); display: block; }
+  .ctrl input[type=range] { accent-color: var(--accent); width: 140px; }
+
+  .metrics { display: flex; gap: 12px; flex-wrap: wrap; margin: 12px 0; }
+  .metric { background: #f7f6f3; border: 1px solid var(--border); border-radius: 10px; padding: 8px 16px; min-width: 120px; }
+  .metric .v { font-size: 22px; font-weight: 800; color: var(--accent); }
+  .metric .l { font-size: 12px; color: var(--ink-soft); }
+  .metric.good .v { color: var(--green); }
+  .metric.bad .v { color: var(--red); }
+
+  .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  @media (max-width: 760px) { .two-col { grid-template-columns: 1fr; } }
+  .col-title { font-size: 13px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 10px; }
+  .col-title.bad { color: var(--red); }
+  .col-title.good { color: var(--green); }
+
+  .note { font-size: 14px; color: var(--ink-soft); background: var(--accent-soft); border: 1px solid #ccd6fb; border-radius: 10px; padding: 12px 16px; margin-top: 12px; }
+  .note b { color: var(--accent); }
+
+  /* sim1 grids */
+  .kvgrid { display: flex; flex-direction: column; gap: 3px; min-height: 200px; }
+  .kvrow { display: flex; gap: 3px; }
+  .kvcell { width: 16px; height: 16px; border-radius: 4px; flex: none; }
+  .kvcell.prompt { background: #d8dce8; }
+  .kvcell.rc { background: var(--red); opacity: 0.8; }
+  .kvcell.cached { background: var(--purple); opacity: 0.75; }
+  .kvcell.new { background: var(--green); }
+  .legend { display: flex; gap: 16px; flex-wrap: wrap; font-size: 13px; color: var(--ink-soft); margin-top: 12px; }
+  .legend span { display: inline-flex; align-items: center; gap: 6px; }
+  .legend i { width: 13px; height: 13px; border-radius: 4px; display: inline-block; }
+
+  /* sim2 memory */
+  .memgrid { display: grid; grid-template-columns: repeat(16, 1fr); gap: 2px; }
+  .mblock { aspect-ratio: 1; border-radius: 3px; background: #eeede9; transition: background 0.2s; }
+  .mblock.wasted { background-image: repeating-linear-gradient(45deg, rgba(255,255,255,0.55) 0 3px, transparent 3px 6px); }
+
+  /* sim3 routing */
+  .routing-stage { position: relative; min-height: 380px; }
+  .gateway {
+    width: 240px; margin: 0 auto 50px; text-align: center; background: var(--accent-soft);
+    border: 2px solid var(--accent); border-radius: 12px; padding: 10px; font-weight: 700; color: var(--accent);
+  }
+  .gateway small { display: block; font-weight: 400; font-size: 12px; color: var(--ink-soft); }
+  .pods { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; }
+  @media (max-width: 700px) { .pods { grid-template-columns: repeat(2, 1fr); } }
+  .pod { background: var(--surface); border: 1.5px solid var(--border); border-radius: 12px; padding: 10px; text-align: center; transition: border-color 0.2s, box-shadow 0.2s; }
+  .pod.busy { border-color: var(--orange); box-shadow: 0 0 0 3px var(--orange-soft); }
+  .pod h5 { font-size: 13px; margin-bottom: 6px; }
+  .pod .cache-row { display: flex; gap: 4px; justify-content: center; min-height: 16px; margin-bottom: 6px; }
+  .conv-chip { width: 14px; height: 14px; border-radius: 50%; }
+  .pod .qrow { display: flex; gap: 3px; justify-content: center; min-height: 10px; }
+  .qdot { width: 8px; height: 8px; border-radius: 50%; background: #c9cdd9; }
+  .pod .plabel { font-size: 11px; color: var(--ink-soft); }
+  .flydot { position: absolute; width: 14px; height: 14px; border-radius: 50%; z-index: 10; transition: all 0.55s cubic-bezier(.4,.1,.4,1); box-shadow: 0 1px 4px rgba(0,0,0,0.25); }
+  .hitflash { animation: hf 0.6s; }
+  @keyframes hf { 0% { box-shadow: 0 0 0 0 rgba(42,157,104,0.6);} 100% { box-shadow: 0 0 0 14px rgba(42,157,104,0);} }
+
+  /* sim4 lanes */
+  .lane-wrap { margin-bottom: 8px; }
+  .lane-label { font-size: 12px; font-weight: 700; color: var(--ink-soft); margin-bottom: 2px; }
+  .lane { display: flex; gap: 1px; height: 22px; background: #f1f0ec; border-radius: 5px; overflow: hidden; padding: 2px; }
+  .slice { width: 6px; flex: none; border-radius: 1px; }
+  .slice.p { background: var(--orange); }
+  .slice.ps { background: var(--red); }
+  .slice.d { background: var(--accent); }
+  .slice.t { background: var(--purple); }
+  .slice.i { background: #e3e1dc; }
+
+  /* sim5 tiers */
+  .tierbar { margin-bottom: 10px; }
+  .tierbar .tl { display: flex; justify-content: space-between; font-size: 13px; font-weight: 600; margin-bottom: 3px; }
+  .tierbar .track { height: 20px; background: #f1f0ec; border-radius: 8px; overflow: hidden; }
+  .tierbar .fill { height: 100%; border-radius: 8px; transition: width 0.2s; }
+  canvas { width: 100%; border: 1px solid var(--border); border-radius: 10px; background: #fff; }
+
+  /* sim6 experts */
+  .experts { display: flex; gap: 6px; align-items: flex-end; height: 180px; margin: 16px 0 4px; }
+  .slot { flex: 1; display: flex; flex-direction: column; justify-content: flex-end; height: 100%; }
+  .slot .bar { border-radius: 5px 5px 0 0; transition: height 0.15s; min-height: 2px; }
+  .slot.maxed .bar { outline: 3px solid var(--red); outline-offset: -1px; }
+  .slot-labels { display: flex; gap: 6px; }
+  .slot-labels div { flex: 1; text-align: center; font-size: 10px; color: var(--ink-soft); }
+  footer { padding: 30px 0 50px; text-align: center; color: var(--ink-soft); font-size: 14px; border-top: 1px solid var(--border); }
+  footer a { color: var(--accent); }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="container">
+    <h1>Simulatoare <span>LLM-D &amp; vLLM</span> 🎛️</h1>
+    <p>Șase simulatoare interactive ca să <em>vezi</em> conceptele de la meetup în acțiune, nu doar să citești despre ele. Apasă pe butoane, trage de slidere, compară.</p>
+    <a class="back" href="llmd-explicat.html">← înapoi la ghidul explicat</a>
+  </div>
+</header>
+
+<div class="tabs container">
+  <button class="tab active" data-sim="s1">1 · KV Cache</button>
+  <button class="tab" data-sim="s2">2 · PagedAttention</button>
+  <button class="tab" data-sim="s3">3 · Rutare inteligentă</button>
+  <button class="tab" data-sim="s4">4 · P/D Disaggregation</button>
+  <button class="tab" data-sim="s5">5 · KV Offloading</button>
+  <button class="tab" data-sim="s6">6 · MoE + EPLB</button>
+</div>
+
+<!-- ════════ SIM 1: KV CACHE ════════ -->
+<section class="sim active" id="s1">
+  <div class="container">
+    <h2>🧠 KV Cache — de ce nu recalculăm trecutul</h2>
+    <p class="lead">Modelul generează token cu token. La fiecare pas, atenția are nevoie de cheile și valorile (K/V) <em>tuturor</em> tokenilor de dinainte. Fără cache, le recalculezi la fiecare pas. Cu cache, le citești din memorie și calculezi doar tokenul nou.</p>
+    <div class="panel">
+      <div class="controls">
+        <button class="btn" id="s1-play">▶ Pornește generarea</button>
+        <button class="btn secondary" id="s1-reset">↺ Reset</button>
+        <div class="ctrl"><label>Lungime prompt: <b id="s1-pl-v">6</b> tokeni</label><input type="range" id="s1-pl" min="3" max="14" value="6"></div>
+        <div class="ctrl"><label>Viteză</label><input type="range" id="s1-speed" min="1" max="10" value="4"></div>
+      </div>
+      <div class="two-col">
+        <div>
+          <div class="col-title bad">❌ Fără KV cache</div>
+          <div class="kvgrid" id="s1-grid-no"></div>
+          <div class="metrics">
+            <div class="metric bad"><div class="v" id="s1-ops-no">0</div><div class="l">operații K/V totale</div></div>
+          </div>
+        </div>
+        <div>
+          <div class="col-title good">✓ Cu KV cache (vLLM)</div>
+          <div class="kvgrid" id="s1-grid-yes"></div>
+          <div class="metrics">
+            <div class="metric good"><div class="v" id="s1-ops-yes">0</div><div class="l">operații K/V totale</div></div>
+            <div class="metric good"><div class="v" id="s1-ratio">—</div><div class="l">mai puține operații</div></div>
+          </div>
+        </div>
+      </div>
+      <div class="legend">
+        <span><i style="background:#d8dce8"></i> token din prompt</span>
+        <span><i style="background:var(--red);opacity:.8"></i> K/V recalculat (muncă irosită)</span>
+        <span><i style="background:var(--purple);opacity:.75"></i> K/V citit din cache</span>
+        <span><i style="background:var(--green)"></i> token nou (singurul calcul necesar)</span>
+      </div>
+      <div class="note">Fiecare rând = un pas de generare. Observă cum în stânga roșul crește <b>pătratic</b> — exact costul pe care îl plătești când un load balancer naiv îți trimite conversația pe un pod fără cache. De-asta tokenii cache-uiți costă de 10× mai puțin la OpenAI &amp; co.</div>
+    </div>
+  </div>
+</section>
+
+<!-- ════════ SIM 2: PAGED ATTENTION ════════ -->
+<section class="sim" id="s2">
+  <div class="container">
+    <h2>📦 PagedAttention — inovația centrală din vLLM</h2>
+    <p class="lead">Nu știi dinainte cât de lung va fi un răspuns. Serverele clasice rezervau memorie GPU <em>contiguă</em> pentru lungimea maximă — risipă uriașă + fragmentare. vLLM împarte KV cache-ul în <strong>pagini mici</strong> alocate la cerere, oriunde e loc (ca memoria virtuală din OS).</p>
+    <div class="panel">
+      <div class="controls">
+        <button class="btn" id="s2-play">▶ Pornește traficul</button>
+        <button class="btn secondary" id="s2-reset">↺ Reset</button>
+        <span style="font-size:13px;color:var(--ink-soft)">Cereri identice intră în ambele sisteme. Lungimea reală a răspunsului e aleatorie (4–16 blocuri).</span>
+      </div>
+      <div class="two-col">
+        <div>
+          <div class="col-title bad">❌ Alocare contiguă (rezervă max = 16 blocuri)</div>
+          <div class="memgrid" id="s2-grid-c"></div>
+          <div class="metrics">
+            <div class="metric"><div class="v" id="s2-util-c">0%</div><div class="l">memorie folosită util</div></div>
+            <div class="metric bad"><div class="v" id="s2-rej-c">0</div><div class="l">cereri respinse</div></div>
+            <div class="metric"><div class="v" id="s2-waste-c">0</div><div class="l">blocuri rezervate degeaba</div></div>
+          </div>
+        </div>
+        <div>
+          <div class="col-title good">✓ PagedAttention (alocă doar ce e nevoie, oriunde)</div>
+          <div class="memgrid" id="s2-grid-p"></div>
+          <div class="metrics">
+            <div class="metric"><div class="v" id="s2-util-p">0%</div><div class="l">memorie folosită util</div></div>
+            <div class="metric good"><div class="v" id="s2-rej-p">0</div><div class="l">cereri respinse</div></div>
+            <div class="metric"><div class="v" id="s2-srv-p">0</div><div class="l">cereri servite</div></div>
+          </div>
+        </div>
+      </div>
+      <div class="legend">
+        <span><i style="background:#eeede9"></i> bloc liber</span>
+        <span><i style="background:var(--accent)"></i> bloc folosit (o culoare per cerere)</span>
+        <span><i style="background:var(--accent);background-image:repeating-linear-gradient(45deg, rgba(255,255,255,0.55) 0 3px, transparent 3px 6px)"></i> rezervat dar nefolosit (risipă)</span>
+      </div>
+      <div class="note">Stânga respinge cereri deși are blocuri libere — nu găsește <b>16 consecutive</b> și ține blocuri rezervate degeaba. Dreapta umple fiecare colț. Așa a obținut vLLM de la început throughput mult mai mare pe același GPU.</div>
+    </div>
+  </div>
+</section>
+
+<!-- ════════ SIM 3: ROUTING ════════ -->
+<section class="sim" id="s3">
+  <div class="container">
+    <h2>🧭 Inference Scheduler — round-robin vs. prefix-aware</h2>
+    <p class="lead">6 utilizatori (culorile) poartă conversații multi-turn cu un model servit de 4 pod-uri. Fiecare pod ține în cache max. 3 conversații. Întrebarea LLM-D: <em>unde trimiți următorul mesaj?</em></p>
+    <div class="panel">
+      <div class="controls">
+        <button class="btn" id="s3-play">▶ Pornește traficul</button>
+        <button class="btn secondary" id="s3-reset">↺ Reset</button>
+        <label class="toggle"><input type="checkbox" id="s3-mode"> <span>Rutare <b>prefix-aware</b> (LLM-D)</span></label>
+      </div>
+      <div class="metrics">
+        <div class="metric"><div class="v" id="s3-ttft">—</div><div class="l">TTFT mediu (ultimele 15)</div></div>
+        <div class="metric good"><div class="v" id="s3-hit">0%</div><div class="l">rată de cache hit</div></div>
+        <div class="metric bad"><div class="v" id="s3-recomp">0</div><div class="l">prefill-uri irosite (recompute)</div></div>
+      </div>
+      <div class="routing-stage" id="s3-stage">
+        <div class="gateway" id="s3-gw">⛩️ Gateway / Scheduler<small id="s3-gw-mode">mod: round-robin naiv</small></div>
+        <div class="pods" id="s3-pods"></div>
+      </div>
+      <div class="legend">
+        <span>🟢 inel verde la pod = cache hit</span>
+        <span>punctele gri sub pod = coada de așteptare</span>
+        <span>bulinele din pod = conversațiile aflate în KV cache (LRU, max 3)</span>
+      </div>
+      <div class="note">Lasă-l să ruleze ~20s în fiecare mod și compară TTFT. Cu round-robin, conversațiile aterizează aiurea → recompute constant și cache-ul se „bate" (thrashing). Cu prefix-aware, fiecare conversație se lipește de pod-ul care o ține minte. La meetup: până la <b>57× mai rapid</b> pe workload-uri reale.</div>
+    </div>
+  </div>
+</section>
+
+<!-- ════════ SIM 4: P/D DISAGG ════════ -->
+<section class="sim" id="s4">
+  <div class="container">
+    <h2>✂️ Prefill/Decode Disaggregation — aceeași muncă, două echipe</h2>
+    <p class="lead">Același flux de cereri intră în două sisteme a câte 4 GPU-uri. Sus: fiecare GPU face și prefill și decode (monolitic). Jos: 2 GPU-uri doar prefill + 2 doar decode, cu transfer de KV cache între ele (NIXL).</p>
+    <div class="panel">
+      <div class="controls">
+        <button class="btn" id="s4-play">▶ Pornește traficul</button>
+        <button class="btn secondary" id="s4-reset">↺ Reset</button>
+        <div class="ctrl"><label>Trafic: o cerere la <b id="s4-rate-v">0.8</b>s</label><input type="range" id="s4-rate" min="4" max="30" value="8"></div>
+      </div>
+      <div class="two-col">
+        <div>
+          <div class="col-title bad">❌ Monolitic (4× GPU mixt)</div>
+          <div id="s4-lanes-m"></div>
+          <div class="metrics">
+            <div class="metric"><div class="v" id="s4-tps-m">0</div><div class="l">tokeni / s</div></div>
+            <div class="metric bad"><div class="v" id="s4-stall-m">0</div><div class="l">momente de „înghețare" a streamului</div></div>
+          </div>
+        </div>
+        <div>
+          <div class="col-title good">✓ Disaggregat (2× prefill + 2× decode)</div>
+          <div id="s4-lanes-d"></div>
+          <div class="metrics">
+            <div class="metric"><div class="v" id="s4-tps-d">0</div><div class="l">tokeni / s</div></div>
+            <div class="metric good"><div class="v" id="s4-stall-d">0</div><div class="l">momente de „înghețare" a streamului</div></div>
+          </div>
+        </div>
+      </div>
+      <div class="legend">
+        <span><i style="background:var(--orange)"></i> prefill (procesare prompt)</span>
+        <span><i style="background:var(--red)"></i> prefill care <b>blochează</b> decode-uri active (stall!)</span>
+        <span><i style="background:var(--accent)"></i> decode (tokeni generați, continuous batching)</span>
+        <span><i style="background:var(--purple)"></i> transfer KV (handoff)</span>
+        <span><i style="background:#e3e1dc"></i> idle</span>
+      </div>
+      <div class="note">În stânga, când sosește un prompt lung, GPU-ul îl bagă în față și <b>toate streamurile de chat de pe el îngheață</b> (feliile roșii) — userul vede textul oprindu-se. În dreapta, decoderii nu sunt deranjați niciodată. Nuanța de la meetup: merită mai ales la concurență medie (~1,5× throughput), nu mereu.</div>
+    </div>
+  </div>
+</section>
+
+<!-- ════════ SIM 5: OFFLOADING ════════ -->
+<section class="sim" id="s5">
+  <div class="container">
+    <h2>🗄️ KV Offloading — GPU → RAM → Disk</h2>
+    <p class="lead">Pe măsură ce cresc utilizatorii, KV cache-ul total crește peste memoria GPU. Fără niveluri suplimentare, cache-ul vechi e aruncat (evicted) și totul se recalculează — throughput-ul se prăbușește. Activează nivelurile și vezi diferența.</p>
+    <div class="panel">
+      <div class="controls">
+        <button class="btn" id="s5-play">▶ Pornește creșterea</button>
+        <button class="btn secondary" id="s5-reset">↺ Reset</button>
+        <label class="toggle"><input type="checkbox" id="s5-cpu" checked> <span>Nivel <b>CPU / RAM</b></span></label>
+        <label class="toggle"><input type="checkbox" id="s5-disk" checked> <span>Nivel <b>Storage / Disk</b></span></label>
+      </div>
+      <div class="metrics">
+        <div class="metric"><div class="v" id="s5-users">0</div><div class="l">utilizatori activi</div></div>
+        <div class="metric good"><div class="v" id="s5-thr">0</div><div class="l">throughput (tokeni/s)</div></div>
+        <div class="metric bad"><div class="v" id="s5-evict">0%</div><div class="l">din cache pierdut (recompute)</div></div>
+      </div>
+      <div class="tierbar">
+        <div class="tl"><span>⚡ GPU (HBM) — rapid, mic, scump</span><span id="s5-l1">0 / 150</span></div>
+        <div class="track"><div class="fill" id="s5-b1" style="background:var(--accent);width:0%"></div></div>
+      </div>
+      <div class="tierbar">
+        <div class="tl"><span>🐇 CPU / RAM — mediu</span><span id="s5-l2">0 / 450</span></div>
+        <div class="track"><div class="fill" id="s5-b2" style="background:var(--green);width:0%"></div></div>
+      </div>
+      <div class="tierbar">
+        <div class="tl"><span>🐢 Disk / POSIX — uriaș, mai lent</span><span id="s5-l3">0 / 1350</span></div>
+        <div class="track"><div class="fill" id="s5-b3" style="background:var(--orange);width:0%"></div></div>
+      </div>
+      <canvas id="s5-chart" width="900" height="220"></canvas>
+      <div class="note">Graficul arată throughput-ul în timp ce utilizatorii cresc. Fiecare „genunchi" = saturarea unui nivel. Debifează CPU și Disk și repornește: vei vedea prăbușirea de la primul zid. Cu toate nivelurile, același hardware susține de câteva ori mai mulți utilizatori — exact graficul de la meetup.</div>
+    </div>
+  </div>
+</section>
+
+<!-- ════════ SIM 6: MOE + EPLB ════════ -->
+<section class="sim" id="s6">
+  <div class="container">
+    <h2>🏥 MoE + EPLB — echilibrarea experților</h2>
+    <p class="lead">Un model MoE rutează fiecare token către câțiva „experți". În producție, distribuția tokenilor e <strong>dezechilibrată</strong>: unii experți sunt fierbinți, alții stau degeaba. Întreg sistemul merge cu viteza <em>celui mai aglomerat</em> GPU. EPLB replică experții fierbinți și rebalansează.</p>
+    <div class="panel">
+      <div class="controls">
+        <button class="btn" id="s6-play">▶ Pornește tokenii</button>
+        <button class="btn secondary" id="s6-reset">↺ Reset</button>
+        <label class="toggle"><input type="checkbox" id="s6-eplb"> <span><b>EPLB</b> activat (replicare + rebalansare)</span></label>
+        <button class="btn secondary" id="s6-shift">🔀 Schimbă workload-ul</button>
+      </div>
+      <div class="metrics">
+        <div class="metric good"><div class="v" id="s6-thr">—</div><div class="l">throughput relativ</div></div>
+        <div class="metric bad"><div class="v" id="s6-imb">—</div><div class="l">dezechilibru (max/medie)</div></div>
+        <div class="metric"><div class="v" id="s6-alloc">uniform</div><div class="l">alocare sloturi GPU</div></div>
+      </div>
+      <div class="experts" id="s6-slots"></div>
+      <div class="slot-labels" id="s6-labels"></div>
+      <div class="note">16 sloturi GPU, 8 experți (E1 = cel mai cerut). Fără EPLB fiecare expert primește fix 2 sloturi → barele lui E1 ies prin tavan (contur roșu = bottleneck) și restul așteaptă după el. Cu EPLB, E1 primește mai multe sloturi, sarcina per slot se nivelează și throughput-ul crește. Apasă „Schimbă workload-ul" cu EPLB pornit ca să vezi rebalansarea online de care vorbea Tyler (azi costă ~0,25s în producție).</div>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div class="container">
+    Simulatoare educaționale — cifrele sunt ilustrative, mecanismele sunt cele reale. · <a href="llmd-explicat.html">Ghidul LLM-D explicat</a> · <a href="https://llm-d.ai">llm-d.ai</a>
+  </div>
+</footer>
+
+<script>
+"use strict";
+const $ = id => document.getElementById(id);
+const rand = (a, b) => a + Math.random() * (b - a);
+const randi = (a, b) => Math.floor(rand(a, b + 1));
+const COLORS = ['#4361ee', '#2a9d68', '#e07a2f', '#7b5ea7', '#d94f4f', '#0e9aa7', '#b8860b', '#d6589f'];
+
+/* ───── tabs ───── */
+const sims = {};
+let activeSim = 's1';
+document.querySelectorAll('.tab').forEach(t => t.addEventListener('click', () => {
+  const id = t.dataset.sim;
+  if (id === activeSim) return;
+  document.querySelectorAll('.tab').forEach(x => x.classList.toggle('active', x === t));
+  document.querySelectorAll('section.sim').forEach(s => s.classList.toggle('active', s.id === id));
+  if (sims[activeSim]) sims[activeSim].stop();
+  activeSim = id;
+}));
+
+/* ════════ SIM 1: KV CACHE ════════ */
+sims.s1 = (() => {
+  let timer = null, step = 0, promptLen = 6, opsNo = 0, opsYes = 0;
+  const MAXGEN = 10;
+  function reset() {
+    stop(); step = 0; opsNo = promptLen; opsYes = promptLen; // ambele plătesc prefill-ul o dată
+    render();
+  }
+  function render() {
+    for (const [gridId, cached] of [['s1-grid-no', false], ['s1-grid-yes', true]]) {
+      const g = $(gridId); g.innerHTML = '';
+      // rândul de prompt
+      const pr = document.createElement('div'); pr.className = 'kvrow';
+      for (let i = 0; i < promptLen; i++) pr.appendChild(cell('prompt'));
+      g.appendChild(pr);
+      for (let s = 1; s <= step; s++) {
+        const row = document.createElement('div'); row.className = 'kvrow';
+        const total = promptLen + s;
+        for (let i = 0; i < total - 1; i++) row.appendChild(cell(cached ? 'cached' : 'rc'));
+        row.appendChild(cell('new'));
+        g.appendChild(row);
+      }
+    }
+    $('s1-ops-no').textContent = opsNo;
+    $('s1-ops-yes').textContent = opsYes;
+    $('s1-ratio').textContent = step > 0 ? (opsNo / opsYes).toFixed(1) + '×' : '—';
+  }
+  function cell(cls) { const d = document.createElement('div'); d.className = 'kvcell ' + cls; return d; }
+  function tick() {
+    if (step >= MAXGEN) { stop(); return; }
+    step++;
+    opsNo += promptLen + step;   // recalculează tot + tokenul nou
+    opsYes += 1;                 // doar tokenul nou
+    render();
+  }
+  function start() {
+    if (timer) return;
+    const speed = +$('s1-speed').value;
+    timer = setInterval(tick, 1100 - speed * 95);
+    $('s1-play').textContent = '⏸ Pauză';
+  }
+  function stop() { clearInterval(timer); timer = null; $('s1-play').textContent = '▶ Pornește generarea'; }
+  $('s1-play').addEventListener('click', () => timer ? stop() : start());
+  $('s1-reset').addEventListener('click', reset);
+  $('s1-pl').addEventListener('input', e => { promptLen = +e.target.value; $('s1-pl-v').textContent = promptLen; reset(); });
+  $('s1-speed').addEventListener('input', () => { if (timer) { stop(); start(); } });
+  reset();
+  return { stop };
+})();
+
+/* ════════ SIM 2: PAGED ATTENTION ════════ */
+sims.s2 = (() => {
+  const N = 128, MAXLEN = 16;
+  let timer = null, nextId = 1;
+  const panels = {
+    c: { blocks: [], reqs: [], rejected: 0, served: 0, grid: 's2-grid-c' },
+    p: { blocks: [], reqs: [], rejected: 0, served: 0, grid: 's2-grid-p' },
+  };
+  function buildGrids() {
+    for (const k of ['c', 'p']) {
+      const g = $(panels[k].grid); g.innerHTML = '';
+      panels[k].cells = [];
+      for (let i = 0; i < N; i++) {
+        const d = document.createElement('div'); d.className = 'mblock';
+        g.appendChild(d); panels[k].cells.push(d);
+      }
+      panels[k].blocks = new Array(N).fill(null);
+      panels[k].reqs = []; panels[k].rejected = 0; panels[k].served = 0;
+    }
+  }
+  function allocContig(p, req) {
+    // caută MAXLEN blocuri consecutive
+    let run = 0;
+    for (let i = 0; i < N; i++) {
+      run = p.blocks[i] ? 0 : run + 1;
+      if (run === MAXLEN) {
+        const start = i - MAXLEN + 1;
+        req.cells = [];
+        for (let j = 0; j < MAXLEN; j++) {
+          p.blocks[start + j] = { req, wasted: j >= req.len };
+          req.cells.push(start + j);
+        }
+        return true;
+      }
+    }
+    return false;
+  }
+  function allocPaged(p, req) {
+    const free = [];
+    for (let i = 0; i < N && free.length < req.len; i++) if (!p.blocks[i]) free.push(i);
+    if (free.length < req.len) return false;
+    req.cells = free;
+    for (const i of free) p.blocks[i] = { req, wasted: false };
+    return true;
+  }
+  function spawn() {
+    const req = { id: nextId++, len: randi(4, MAXLEN), dies: Date.now() + rand(4000, 9000), color: COLORS[nextId % COLORS.length] };
+    for (const [k, alloc] of [['c', allocContig], ['p', allocPaged]]) {
+      const p = panels[k];
+      const r = { ...req };
+      if (alloc(p, r)) { p.reqs.push(r); p.served++; }
+      else p.rejected++;
+    }
+  }
+  function tick() {
+    const now = Date.now();
+    for (const k of ['c', 'p']) {
+      const p = panels[k];
+      for (let i = p.reqs.length - 1; i >= 0; i--) {
+        if (p.reqs[i].dies < now) {
+          for (const c of p.reqs[i].cells) p.blocks[c] = null;
+          p.reqs.splice(i, 1);
+        }
+      }
+    }
+    if (Math.random() < 0.75) spawn();
+    render();
+  }
+  function render() {
+    for (const k of ['c', 'p']) {
+      const p = panels[k];
+      let used = 0, wasted = 0;
+      for (let i = 0; i < N; i++) {
+        const b = p.blocks[i], cell = p.cells[i];
+        if (!b) { cell.className = 'mblock'; cell.style.background = ''; }
+        else {
+          cell.className = 'mblock' + (b.wasted ? ' wasted' : '');
+          cell.style.background = b.req.color;
+          b.wasted ? wasted++ : used++;
+        }
+      }
+      $(k === 'c' ? 's2-util-c' : 's2-util-p').textContent = Math.round(used / N * 100) + '%';
+      $(k === 'c' ? 's2-rej-c' : 's2-rej-p').textContent = p.rejected;
+    }
+    $('s2-waste-c').textContent = panels.c.reqs.reduce((a, r) => a + (MAXLEN - r.len), 0);
+    $('s2-srv-p').textContent = panels.p.served;
+  }
+  function start() { if (!timer) { timer = setInterval(tick, 700); $('s2-play').textContent = '⏸ Pauză'; } }
+  function stop() { clearInterval(timer); timer = null; $('s2-play').textContent = '▶ Pornește traficul'; }
+  $('s2-play').addEventListener('click', () => timer ? stop() : start());
+  $('s2-reset').addEventListener('click', () => { stop(); buildGrids(); render(); });
+  buildGrids(); render();
+  return { stop };
+})();
+
+/* ════════ SIM 3: PREFIX-AWARE ROUTING ════════ */
+sims.s3 = (() => {
+  const NPODS = 4, NUSERS = 6, CACHE_CAP = 3;
+  let timer = null, loopT = null, rrCounter = 0, recomputes = 0;
+  let pods, users, latencies, hits, total;
+  function buildPods() {
+    const wrap = $('s3-pods'); wrap.innerHTML = '';
+    pods = [];
+    for (let i = 0; i < NPODS; i++) {
+      const el = document.createElement('div'); el.className = 'pod';
+      el.innerHTML = `<h5>Pod ${i + 1} (vLLM)</h5><div class="cache-row"></div><div class="qrow"></div><div class="plabel">liber</div>`;
+      wrap.appendChild(el);
+      pods.push({ el, cache: [], queue: [], busyUntil: 0, current: null });
+    }
+  }
+  function reset() {
+    stop(); buildPods();
+    users = Array.from({ length: NUSERS }, (_, i) => ({ id: i, turn: 0, color: COLORS[i] }));
+    latencies = []; hits = 0; total = 0; recomputes = 0; rrCounter = 0;
+    renderStats(); pods.forEach(renderPod);
+  }
+  function pickPod(convId) {
+    if ($('s3-mode').checked) {
+      const withCache = pods.find(p => p.cache.includes(convId));
+      if (withCache) return withCache;
+      return pods.reduce((a, b) => (a.queue.length + (a.current ? 1 : 0)) <= (b.queue.length + (b.current ? 1 : 0)) ? a : b);
+    }
+    return pods[(rrCounter++) % NPODS];
+  }
+  function dispatch() {
+    const u = users[randi(0, NUSERS - 1)];
+    u.turn++;
+    const pod = pickPod(u.id);
+    const hit = pod.cache.includes(u.id);
+    flyDot(u, pod, hit);
+    pod.queue.push({ conv: u.id, turn: u.turn, hit, color: u.color, arrived: Date.now() });
+    renderPod(pod);
+  }
+  function flyDot(u, pod, hit) {
+    const stage = $('s3-stage');
+    const dot = document.createElement('div');
+    dot.className = 'flydot'; dot.style.background = u.color;
+    const gw = $('s3-gw').getBoundingClientRect(), st = stage.getBoundingClientRect(), pd = pod.el.getBoundingClientRect();
+    dot.style.left = (gw.left - st.left + gw.width / 2 - 7) + 'px';
+    dot.style.top = (gw.top - st.top + gw.height - 4) + 'px';
+    stage.appendChild(dot);
+    requestAnimationFrame(() => requestAnimationFrame(() => {
+      dot.style.left = (pd.left - st.left + pd.width / 2 - 7) + 'px';
+      dot.style.top = (pd.top - st.top - 8) + 'px';
+    }));
+    setTimeout(() => { dot.remove(); if (hit) { pod.el.classList.add('hitflash'); setTimeout(() => pod.el.classList.remove('hitflash'), 650); } }, 600);
+  }
+  function loop() {
+    const now = Date.now();
+    for (const pod of pods) {
+      if (pod.current && now >= pod.busyUntil) {
+        const r = pod.current;
+        // după procesare conversația intră în cache (LRU)
+        const idx = pod.cache.indexOf(r.conv);
+        if (idx >= 0) pod.cache.splice(idx, 1);
+        pod.cache.push(r.conv);
+        if (pod.cache.length > CACHE_CAP) pod.cache.shift();
+        latencies.push(now - r.arrived); if (latencies.length > 15) latencies.shift();
+        total++; if (r.hit) hits++; else if (r.turn > 1) recomputes++;
+        pod.current = null;
+        renderStats();
+      }
+      if (!pod.current && pod.queue.length) {
+        const r = pod.queue.shift();
+        // re-verifică hit-ul în momentul procesării
+        r.hit = pod.cache.includes(r.conv);
+        const dur = r.hit ? 350 : Math.min(900 + r.turn * 280, 2600);
+        pod.current = r; pod.busyUntil = now + dur;
+      }
+      renderPod(pod);
+    }
+  }
+  function renderPod(pod) {
+    const cr = pod.el.querySelector('.cache-row'); cr.innerHTML = '';
+    for (const c of pod.cache) { const d = document.createElement('div'); d.className = 'conv-chip'; d.style.background = COLORS[c]; cr.appendChild(d); }
+    const qr = pod.el.querySelector('.qrow'); qr.innerHTML = '';
+    for (const q of pod.queue) { const d = document.createElement('div'); d.className = 'qdot'; d.style.background = q.color; qr.appendChild(d); }
+    pod.el.classList.toggle('busy', !!pod.current);
+    pod.el.querySelector('.plabel').textContent = pod.current ? (pod.current.hit ? '⚡ hit — răspunde…' : '🔥 prefill complet…') : 'liber';
+  }
+  function renderStats() {
+    $('s3-ttft').textContent = latencies.length ? Math.round(latencies.reduce((a, b) => a + b) / latencies.length) + ' ms' : '—';
+    $('s3-hit').textContent = total ? Math.round(hits / total * 100) + '%' : '0%';
+    $('s3-recomp').textContent = recomputes;
+  }
+  function start() {
+    if (timer) return;
+    timer = setInterval(dispatch, 750);
+    loopT = setInterval(loop, 80);
+    $('s3-play').textContent = '⏸ Pauză';
+  }
+  function stop() { clearInterval(timer); clearInterval(loopT); timer = loopT = null; $('s3-play').textContent = '▶ Pornește traficul'; }
+  $('s3-play').addEventListener('click', () => timer ? stop() : start());
+  $('s3-reset').addEventListener('click', reset);
+  $('s3-mode').addEventListener('change', e => {
+    $('s3-gw-mode').textContent = 'mod: ' + (e.target.checked ? 'prefix-aware + load-aware (LLM-D)' : 'round-robin naiv');
+  });
+  reset();
+  return { stop };
+})();
+
+/* ════════ SIM 4: P/D DISAGGREGATION ════════ */
+sims.s4 = (() => {
+  let timer = null, spawnAcc = 0;
+  let sysM, sysD, t0;
+  const TICK = 120, PRATE = 3, MAXSLICES = 76;
+  function makeSystem(mode, laneWrapId) {
+    const wrap = $(laneWrapId); wrap.innerHTML = '';
+    const gpus = [];
+    for (let i = 0; i < 4; i++) {
+      const role = mode === 'mono' ? 'both' : (i < 2 ? 'prefill' : 'decode');
+      const lw = document.createElement('div'); lw.className = 'lane-wrap';
+      const label = mode === 'mono' ? `GPU ${i + 1} — mixt` : `GPU ${i + 1} — ${role === 'prefill' ? '🔥 prefill' : '💧 decode'}`;
+      lw.innerHTML = `<div class="lane-label">${label}</div><div class="lane"></div>`;
+      wrap.appendChild(lw);
+      gpus.push({ role, prefQ: [], decodes: [], lane: lw.querySelector('.lane') });
+    }
+    return { mode, gpus, tokens: 0, stalls: 0, tokenLog: [] };
+  }
+  function addSlice(gpu, cls) {
+    const s = document.createElement('div'); s.className = 'slice ' + cls;
+    gpu.lane.appendChild(s);
+    while (gpu.lane.children.length > MAXSLICES) gpu.lane.removeChild(gpu.lane.firstChild);
+  }
+  function assign(sys, req) {
+    const cand = sys.gpus.filter(g => g.role !== 'decode');
+    const g = cand.reduce((a, b) =>
+      (a.prefQ.length + a.decodes.length * 0.05) <= (b.prefQ.length + b.decodes.length * 0.05) ? a : b);
+    g.prefQ.push({ ...req });
+  }
+  function tickSystem(sys) {
+    for (const g of sys.gpus) {
+      if (g.role !== 'decode' && g.prefQ.length) {
+        const r = g.prefQ[0];
+        r.work -= PRATE;
+        if (g.role === 'both' && g.decodes.length) { sys.stalls++; addSlice(g, 'ps'); }
+        else addSlice(g, 'p');
+        if (r.work <= 0) {
+          g.prefQ.shift();
+          if (sys.mode === 'mono') g.decodes.push(r);
+          else {
+            const dg = sys.gpus.filter(x => x.role === 'decode')
+              .reduce((a, b) => a.decodes.length <= b.decodes.length ? a : b);
+            dg.decodes.push(r);
+            addSlice(g, 't'); // handoff KV
+          }
+        }
+      } else if (g.decodes.length) {
+        // continuous batching: toate decode-urile active emit câte un token
+        for (let i = g.decodes.length - 1; i >= 0; i--) {
+          g.decodes[i].toks--; sys.tokens++;
+          if (g.decodes[i].toks <= 0) g.decodes.splice(i, 1);
+        }
+        addSlice(g, 'd');
+      } else addSlice(g, 'i');
+    }
+    sys.tokenLog.push(sys.tokens);
+    if (sys.tokenLog.length > 25) sys.tokenLog.shift(); // fereastră de 3s
+  }
+  function tps(sys) {
+    if (sys.tokenLog.length < 2) return 0;
+    const dt = (sys.tokenLog.length - 1) * TICK / 1000;
+    return Math.round((sys.tokenLog[sys.tokenLog.length - 1] - sys.tokenLog[0]) / dt);
+  }
+  function tick() {
+    const interval = +$('s4-rate').value * 100; // ms între cereri
+    spawnAcc += TICK;
+    while (spawnAcc >= interval) {
+      spawnAcc -= interval;
+      const req = { work: randi(10, 26), toks: randi(25, 55) };
+      assign(sysM, req); assign(sysD, req);
+    }
+    tickSystem(sysM); tickSystem(sysD);
+    $('s4-tps-m').textContent = tps(sysM); $('s4-stall-m').textContent = sysM.stalls;
+    $('s4-tps-d').textContent = tps(sysD); $('s4-stall-d').textContent = sysD.stalls;
+  }
+  function reset() {
+    stop();
+    sysM = makeSystem('mono', 's4-lanes-m');
+    sysD = makeSystem('pd', 's4-lanes-d');
+    spawnAcc = 0;
+    $('s4-tps-m').textContent = '0'; $('s4-stall-m').textContent = '0';
+    $('s4-tps-d').textContent = '0'; $('s4-stall-d').textContent = '0';
+  }
+  function start() { if (!timer) { timer = setInterval(tick, TICK); $('s4-play').textContent = '⏸ Pauză'; } }
+  function stop() { clearInterval(timer); timer = null; $('s4-play').textContent = '▶ Pornește traficul'; }
+  $('s4-play').addEventListener('click', () => timer ? stop() : start());
+  $('s4-reset').addEventListener('click', reset);
+  $('s4-rate').addEventListener('input', e => $('s4-rate-v').textContent = (e.target.value / 10).toFixed(1));
+  reset();
+  return { stop };
+})();
+
+/* ════════ SIM 5: KV OFFLOADING ════════ */
+sims.s5 = (() => {
+  const CAP = [150, 450, 1350];
+  const COST = { gpu: 1, cpu: 1.6, disk: 2.8, miss: 8 };
+  const BUDGET = 1000;
+  let timer = null, usersN = 0, S = 0, history = [], marks = [];
+  const ctx = $('s5-chart').getContext('2d');
+  function distribution() {
+    const cpuOn = $('s5-cpu').checked, diskOn = $('s5-disk').checked;
+    let rest = S;
+    const gpu = Math.min(rest, CAP[0]); rest -= gpu;
+    const cpu = cpuOn ? Math.min(rest, CAP[1]) : 0; rest -= cpu;
+    const disk = diskOn ? Math.min(rest, CAP[2]) : 0; rest -= disk;
+    return { gpu, cpu, disk, evicted: rest };
+  }
+  function tick() {
+    if (usersN < 480) usersN += 2;
+    S += usersN * 0.05;
+    const d = distribution();
+    const fr = k => S > 0 ? d[k] / S : 0;
+    const avgCost = fr('gpu') * COST.gpu + fr('cpu') * COST.cpu + fr('disk') * COST.disk + fr('evicted') * COST.miss;
+    const thr = Math.round(BUDGET / Math.max(avgCost, 0.001));
+    history.push(thr);
+    // marchează saturarea fiecărui nivel
+    if (d.gpu >= CAP[0] && !marks.includes('gpu')) marks.push('gpu', history.length);
+    if (d.cpu >= CAP[1] && !marks.includes('cpu')) marks.push('cpu', history.length);
+    if (d.disk >= CAP[2] && !marks.includes('disk')) marks.push('disk', history.length);
+    render(d, thr);
+    if (usersN >= 480 && S > CAP[0] + CAP[1] + CAP[2] + 2000) stop();
+  }
+  function render(d, thr) {
+    $('s5-users').textContent = usersN;
+    $('s5-thr').textContent = thr;
+    $('s5-evict').textContent = S > 0 ? Math.round(d.evicted / S * 100) + '%' : '0%';
+    $('s5-b1').style.width = (d.gpu / CAP[0] * 100) + '%';
+    $('s5-b2').style.width = (d.cpu / CAP[1] * 100) + '%';
+    $('s5-b3').style.width = (d.disk / CAP[2] * 100) + '%';
+    $('s5-l1').textContent = `${Math.round(d.gpu)} / ${CAP[0]}`;
+    $('s5-l2').textContent = $('s5-cpu').checked ? `${Math.round(d.cpu)} / ${CAP[1]}` : 'dezactivat';
+    $('s5-l3').textContent = $('s5-disk').checked ? `${Math.round(d.disk)} / ${CAP[2]}` : 'dezactivat';
+    drawChart();
+  }
+  function drawChart() {
+    const W = 900, H = 220, pad = 34;
+    ctx.clearRect(0, 0, W, H);
+    ctx.strokeStyle = '#e8e6e1'; ctx.beginPath();
+    ctx.moveTo(pad, 10); ctx.lineTo(pad, H - 24); ctx.lineTo(W - 8, H - 24); ctx.stroke();
+    ctx.fillStyle = '#5c6273'; ctx.font = '11px sans-serif';
+    ctx.fillText('throughput', 6, 18); ctx.fillText('timp / utilizatori →', W - 130, H - 8);
+    if (history.length < 2) return;
+    const maxT = 1050, n = Math.max(history.length, 200);
+    const x = i => pad + (W - pad - 12) * i / (n - 1);
+    const y = v => (H - 24) - (H - 44) * v / maxT;
+    // markere de saturare
+    ctx.setLineDash([4, 4]);
+    const markColors = { gpu: '#4361ee', cpu: '#2a9d68', disk: '#e07a2f' };
+    const markNames = { gpu: 'GPU plin', cpu: 'RAM plin', disk: 'Disk plin' };
+    for (let i = 0; i < marks.length; i += 2) {
+      const k = marks[i], at = marks[i + 1];
+      ctx.strokeStyle = markColors[k]; ctx.beginPath();
+      ctx.moveTo(x(at), 14); ctx.lineTo(x(at), H - 24); ctx.stroke();
+      ctx.fillStyle = markColors[k]; ctx.fillText(markNames[k], x(at) + 4, 24);
+    }
+    ctx.setLineDash([]);
+    ctx.strokeStyle = '#4361ee'; ctx.lineWidth = 2.5; ctx.beginPath();
+    history.forEach((v, i) => i ? ctx.lineTo(x(i), y(v)) : ctx.moveTo(x(i), y(v)));
+    ctx.stroke(); ctx.lineWidth = 1;
+  }
+  function reset() {
+    stop(); usersN = 0; S = 0; history = []; marks = [];
+    render(distribution(), 0);
+  }
+  function start() { if (!timer) { timer = setInterval(tick, 120); $('s5-play').textContent = '⏸ Pauză'; } }
+  function stop() { clearInterval(timer); timer = null; $('s5-play').textContent = '▶ Pornește creșterea'; }
+  $('s5-play').addEventListener('click', () => timer ? stop() : start());
+  $('s5-reset').addEventListener('click', reset);
+  $('s5-cpu').addEventListener('change', reset);
+  $('s5-disk').addEventListener('change', reset);
+  reset();
+  return { stop };
+})();
+
+/* ════════ SIM 6: MOE + EPLB ════════ */
+sims.s6 = (() => {
+  const NEXP = 8, NSLOTS = 16, WINDOW_TOKENS = 240;
+  let timer = null, weights, slots, loads, tokensIn = 0, thrAvg = null;
+  function newWeights() {
+    const raw = Array.from({ length: NEXP }, (_, i) => 1 / Math.pow(i + 1, rand(0.9, 1.4)));
+    // amestecă puțin ca să nu fie mereu E1 cel fierbinte după shift
+    const sum = raw.reduce((a, b) => a + b);
+    weights = raw.map(w => w / sum);
+  }
+  function assignSlots() {
+    if ($('s6-eplb').checked) {
+      // sloturi proporționale cu sarcina (largest remainder), min 1 per expert
+      const ideal = weights.map(w => w * NSLOTS);
+      const base = ideal.map(v => Math.max(1, Math.floor(v)));
+      let used = base.reduce((a, b) => a + b);
+      const rema = ideal.map((v, i) => ({ i, r: v - Math.floor(v) })).sort((a, b) => b.r - a.r);
+      let j = 0;
+      while (used < NSLOTS) { base[rema[j % NEXP].i]++; used++; j++; }
+      while (used > NSLOTS) { const k = base.findIndex((v, i) => v > 1 && i === base.length - 1 - base.slice().reverse().findIndex(x => x > 1)); base[k > -1 ? k : base.indexOf(Math.max(...base))]--; used--; }
+      slots = [];
+      base.forEach((n, e) => { for (let k = 0; k < n; k++) slots.push(e); });
+      $('s6-alloc').textContent = 'proporțională (EPLB)';
+    } else {
+      slots = [];
+      for (let e = 0; e < NEXP; e++) { slots.push(e, e); }
+      $('s6-alloc').textContent = 'uniformă (2 / expert)';
+    }
+    buildBars();
+  }
+  function buildBars() {
+    const w = $('s6-slots'); w.innerHTML = '';
+    const lb = $('s6-labels'); lb.innerHTML = '';
+    bars = [];
+    slots.forEach(e => {
+      const s = document.createElement('div'); s.className = 'slot';
+      const b = document.createElement('div'); b.className = 'bar';
+      b.style.background = COLORS[e]; b.style.height = '2px';
+      s.appendChild(b); w.appendChild(s); bars.push({ el: s, bar: b });
+      const l = document.createElement('div'); l.textContent = 'E' + (e + 1); lb.appendChild(l);
+    });
+    loads = new Array(NSLOTS).fill(0);
+  }
+  let bars = [];
+  function pickExpert() {
+    let r = Math.random();
+    for (let i = 0; i < NEXP; i++) { r -= weights[i]; if (r <= 0) return i; }
+    return NEXP - 1;
+  }
+  function tick() {
+    // sosesc ~12 tokeni per tick
+    for (let n = 0; n < 12; n++) {
+      const e = pickExpert();
+      // tokenul merge la replica cea mai liberă a expertului
+      let best = -1;
+      for (let s = 0; s < NSLOTS; s++) if (slots[s] === e && (best < 0 || loads[s] < loads[best])) best = s;
+      loads[best]++;
+      tokensIn++;
+    }
+    renderBars();
+    if (tokensIn >= WINDOW_TOKENS) evaluateWindow();
+  }
+  function renderBars() {
+    const maxL = Math.max(...loads, 1);
+    const maxIdx = loads.indexOf(Math.max(...loads));
+    bars.forEach((b, i) => {
+      b.bar.style.height = Math.max(2, loads[i] / Math.max(maxL, 30) * 165) + 'px';
+      b.el.classList.toggle('maxed', i === maxIdx && loads[i] > 5);
+    });
+  }
+  function evaluateWindow() {
+    const maxL = Math.max(...loads);
+    const avg = loads.reduce((a, b) => a + b) / NSLOTS;
+    const imb = maxL / Math.max(avg, 0.001);
+    // toată fereastra durează cât slotul cel mai încărcat → throughput ∝ 1/maxL
+    const thr = Math.round(WINDOW_TOKENS / maxL * 100);
+    thrAvg = thrAvg === null ? thr : Math.round(thrAvg * 0.6 + thr * 0.4);
+    $('s6-thr').textContent = thrAvg;
+    $('s6-imb').textContent = imb.toFixed(1) + '×';
+    loads = new Array(NSLOTS).fill(0); tokensIn = 0;
+  }
+  function reset() {
+    stop(); newWeights(); assignSlots(); tokensIn = 0; thrAvg = null;
+    $('s6-thr').textContent = '—'; $('s6-imb').textContent = '—';
+  }
+  function start() { if (!timer) { timer = setInterval(tick, 120); $('s6-play').textContent = '⏸ Pauză'; } }
+  function stop() { clearInterval(timer); timer = null; $('s6-play').textContent = '▶ Pornește tokenii'; }
+  $('s6-play').addEventListener('click', () => timer ? stop() : start());
+  $('s6-reset').addEventListener('click', reset);
+  $('s6-eplb').addEventListener('change', () => { assignSlots(); tokensIn = 0; thrAvg = null; });
+  $('s6-shift').addEventListener('click', () => { newWeights(); assignSlots(); tokensIn = 0; thrAvg = null; });
+  reset();
+  return { stop };
+})();
+</script>
+</body>
+</html>
