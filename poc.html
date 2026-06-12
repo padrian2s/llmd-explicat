@@ -1,0 +1,345 @@
+<!DOCTYPE html>
+<html lang="ro">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Schița POC — LLM-D Inference Gateway pe Proxmox i9</title>
+<script src="https://cdn.jsdelivr.net/npm/d3@7"></script>
+<style>
+  :root {
+    --bg: #fdfcfa; --surface: #ffffff; --ink: #2d3142; --ink-soft: #5c6273;
+    --accent: #4361ee; --accent-soft: #eef1fe; --green: #2a9d68; --green-soft: #e8f6ef;
+    --orange: #e07a2f; --orange-soft: #fdf1e6; --purple: #7b5ea7; --purple-soft: #f3eefa;
+    --red: #d94f4f; --border: #e8e6e1; --radius: 14px;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
+    background: var(--bg); color: var(--ink); line-height: 1.6; font-size: 16px; }
+  .container { max-width: 1020px; margin: 0 auto; padding: 0 20px; }
+  header { padding: 32px 0 8px; text-align: center; position: relative; }
+  header h1 { font-size: clamp(24px, 4vw, 34px); }
+  header h1 span { color: var(--accent); }
+  header p { color: var(--ink-soft); max-width: 720px; margin: 10px auto 0; }
+  .navlinks { text-align: center; padding: 8px 0 16px; font-size: 14px; }
+  .navlinks a { color: var(--accent); text-decoration: none; padding: 4px 10px; border-radius: 999px; }
+  .navlinks a:hover { background: var(--accent-soft); }
+  .lang-toggle { position: absolute; right: 0; top: 32px; }
+  .lang-toggle button { border: 1px solid var(--border); background: var(--surface); padding: 6px 12px;
+    cursor: pointer; font-weight: 700; font-size: 13px; color: var(--ink-soft); }
+  .lang-toggle button:first-child { border-radius: 8px 0 0 8px; }
+  .lang-toggle button:last-child { border-radius: 0 8px 8px 0; }
+  .lang-toggle button.active { background: var(--accent); border-color: var(--accent); color: #fff; }
+  .panel { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius);
+    padding: 18px; margin: 12px 0; }
+  .controls { display: flex; gap: 10px; flex-wrap: wrap; justify-content: center; margin-bottom: 10px; }
+  button.btn { background: var(--accent); color: #fff; border: none; padding: 9px 18px;
+    border-radius: 10px; font-size: 14px; font-weight: 700; cursor: pointer; }
+  button.btn.b { background: var(--green); }
+  button.btn.secondary { background: #f1f0ec; color: var(--ink); }
+  button.btn:disabled { opacity: 0.45; cursor: default; }
+  svg { width: 100%; height: auto; display: block; }
+  .results { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin: 14px 0; }
+  @media (max-width: 700px) { .results { grid-template-columns: 1fr; } }
+  .rescard { border: 1px solid var(--border); border-radius: 12px; padding: 14px 18px; }
+  .rescard.a { background: var(--purple-soft); }
+  .rescard.b { background: var(--green-soft); }
+  .rescard h4 { font-size: 14px; margin-bottom: 6px; }
+  .rescard pre { font-size: 12.5px; font-family: ui-monospace, Menlo, Consolas, monospace;
+    background: rgba(255,255,255,0.7); padding: 8px 10px; border-radius: 8px; overflow-x: auto; }
+  .rescard p { font-size: 13.5px; color: var(--ink-soft); margin-top: 6px; }
+  footer { padding: 24px 0 44px; text-align: center; color: var(--ink-soft); font-size: 13.5px; }
+  footer a { color: var(--accent); }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="container">
+    <div class="lang-toggle">
+      <button id="btn-ro" class="active">RO</button><button id="btn-en">EN</button>
+    </div>
+    <h1 id="t-title">Schița POC: <span>LLM-D pe Proxmox i9</span> 🗺️</h1>
+    <p id="t-sub">Ce am construit și validat pe 12 iunie 2026: Inference Gateway (GAIE v1.5.0) cu scheduler EPP și rutare prefix-aware, pe clusterul k3s de acasă — fără niciun GPU.</p>
+  </div>
+</header>
+
+<div class="navlinks">
+  <a href="llmd-explicat.html" id="l-guide">📖 Ghidul explicat</a>
+  <a href="llmd-simulatoare.html" id="l-sims">🎛️ Simulatoarele</a>
+  <a href="https://github.com/padrian2s/llmd-explicat">⭐ GitHub</a>
+</div>
+
+<div class="container">
+  <div class="panel">
+    <div class="controls">
+      <button class="btn" id="phaseA">▶ Faza A — aceeași conversație ×12</button>
+      <button class="btn b" id="phaseB">▶ Faza B — utilizatori diferiți ×12</button>
+      <button class="btn secondary" id="resetBtn">↺ Reset</button>
+    </div>
+    <div id="diagram"></div>
+  </div>
+
+  <div class="results">
+    <div class="rescard a">
+      <h4 id="ra-title">🟣 Faza A — măsurat live: 12 cereri, același prefix lung</h4>
+      <pre>12  x-inference-pod: …-lgl5v
+ 0  x-inference-pod: …-94fnv
+ 0  x-inference-pod: …-5pn6m</pre>
+      <p id="ra-note">Toate cele 12 cereri au aterizat pe același pod → afinitate de KV cache, zero recompute. EPP a recunoscut prefixul comun.</p>
+    </div>
+    <div class="rescard b">
+      <h4 id="rb-title">🟢 Faza B — măsurat live: 12 cereri, prefixe complet diferite</h4>
+      <pre> 3  x-inference-pod: …-5pn6m
+ 6  x-inference-pod: …-94fnv
+ 3  x-inference-pod: …-lgl5v</pre>
+      <p id="rb-note">Fără cache de refolosit, EPP a distribuit cererile pe toate pod-urile → load balancing. Două comportamente opuse, același scheduler.</p>
+    </div>
+  </div>
+</div>
+
+<footer>
+  <div class="container" id="t-footer">
+    Componente reale: Istio 1.28 · Gateway API Inference Extension v1.5.0 · EPP · 3× llm-d-inference-sim v0.8.2 · k3s v1.35 — coexistând cu stack-ul KServe v0.15 existent.
+  </div>
+</footer>
+
+<script>
+"use strict";
+const I18N = {
+  ro: {
+    htmlLang: 'ro',
+    title: 'Schița POC: <span>LLM-D pe Proxmox i9</span> 🗺️',
+    sub: 'Ce am construit și validat pe 12 iunie 2026: Inference Gateway (GAIE v1.5.0) cu scheduler EPP și rutare prefix-aware, pe clusterul k3s de acasă — fără niciun GPU.',
+    guide: '📖 Ghidul explicat', sims: '🎛️ Simulatoarele',
+    guideHref: 'llmd-explicat.html', simsHref: 'llmd-simulatoare.html',
+    phaseA: '▶ Faza A — aceeași conversație ×12',
+    phaseB: '▶ Faza B — utilizatori diferiți ×12',
+    reset: '↺ Reset',
+    raTitle: '🟣 Faza A — măsurat live: 12 cereri, același prefix lung',
+    raNote: 'Toate cele 12 cereri au aterizat pe același pod → afinitate de KV cache, zero recompute. EPP a recunoscut prefixul comun.',
+    rbTitle: '🟢 Faza B — măsurat live: 12 cereri, prefixe complet diferite',
+    rbNote: 'Fără cache de refolosit, EPP a distribuit cererile pe toate pod-urile → load balancing. Două comportamente opuse, același scheduler.',
+    footer: 'Componente reale: Istio 1.28 · Gateway API Inference Extension v1.5.0 · EPP · 3× llm-d-inference-sim v0.8.2 · k3s v1.35 — coexistând cu stack-ul KServe v0.15 existent.',
+    proxmox: '🖥 Proxmox VE 9.1 — Intel i9-13900K · 24c/32t · 128 GB RAM · 192.168.2.105 · fără GPU',
+    vm: 'VM 200 «llm-cpu» — Ubuntu 24.04 · 8 vCPU · 64 GB · k3s v1.35 · 192.168.2.14',
+    client: ['💻 Client', '(Mac, LAN)'],
+    gateway: ['⛩ Istio Gateway', 'inference-gateway', 'port 80'],
+    epp: ['🧠 EPP', 'Endpoint Picker', 'scoring: prefix + load'],
+    pool: 'InferencePool „vllm-qwen3-32b"',
+    pod: i => `vLLM-sim pod ${i}`,
+    podSub: 'llm-d-inference-sim v0.8.2',
+    served: n => `${n} cereri servite`,
+    kserve: ['📦 KServe v0.15 (RawDeployment)', 'opt-125m — stack-ul vechi, coexistă'],
+    extproc: 'ext-proc: „pe cine aleg?"',
+    metrics: 'metrici + hartă prefix-cache',
+    httproute: 'HTTPRoute',
+  },
+  en: {
+    htmlLang: 'en',
+    title: 'POC sketch: <span>LLM-D on a Proxmox i9</span> 🗺️',
+    sub: 'What we built and validated on June 12, 2026: an Inference Gateway (GAIE v1.5.0) with the EPP scheduler and prefix-aware routing, on a home k3s cluster — with no GPU at all.',
+    guide: '📖 The explainer guide', sims: '🎛️ The simulators',
+    guideHref: 'llmd-explicat.en.html', simsHref: 'llmd-simulatoare.en.html',
+    phaseA: '▶ Phase A — same conversation ×12',
+    phaseB: '▶ Phase B — different users ×12',
+    reset: '↺ Reset',
+    raTitle: '🟣 Phase A — measured live: 12 requests, same long prefix',
+    raNote: 'All 12 requests landed on the same pod → KV-cache affinity, zero recompute. The EPP recognized the shared prefix.',
+    rbTitle: '🟢 Phase B — measured live: 12 requests, completely different prefixes',
+    rbNote: 'With no cache to reuse, the EPP spread requests across all pods → load balancing. Two opposite behaviors, one scheduler.',
+    footer: 'Real components: Istio 1.28 · Gateway API Inference Extension v1.5.0 · EPP · 3× llm-d-inference-sim v0.8.2 · k3s v1.35 — coexisting with the pre-existing KServe v0.15 stack.',
+    proxmox: '🖥 Proxmox VE 9.1 — Intel i9-13900K · 24c/32t · 128 GB RAM · 192.168.2.105 · no GPU',
+    vm: 'VM 200 “llm-cpu” — Ubuntu 24.04 · 8 vCPU · 64 GB · k3s v1.35 · 192.168.2.14',
+    client: ['💻 Client', '(Mac, LAN)'],
+    gateway: ['⛩ Istio Gateway', 'inference-gateway', 'port 80'],
+    epp: ['🧠 EPP', 'Endpoint Picker', 'scoring: prefix + load'],
+    pool: 'InferencePool “vllm-qwen3-32b”',
+    pod: i => `vLLM-sim pod ${i}`,
+    podSub: 'llm-d-inference-sim v0.8.2',
+    served: n => `${n} requests served`,
+    kserve: ['📦 KServe v0.15 (RawDeployment)', 'opt-125m — the legacy stack, coexisting'],
+    extproc: 'ext-proc: “who serves?”',
+    metrics: 'metrics + prefix-cache map',
+    httproute: 'HTTPRoute',
+  }
+};
+
+let lang = 'ro';
+let counts = [0, 0, 0];
+let animating = false;
+
+const W = 960, H = 700;
+const PODS_Y = [105, 295, 485];
+const POD = { x: 690, w: 200, h: 84 };
+const GW = { x: 215, y: 280, w: 150, h: 86 };
+const EPP = { x: 425, y: 268, w: 175, h: 110 };
+const CLIENT = { x: 12, y: 288, w: 140, h: 70 };
+
+const svgRoot = d3.select('#diagram').append('svg').attr('viewBox', `0 0 ${W} ${H}`);
+let svg;
+
+function node(g, x, y, w, h, fill, stroke, lines, opts = {}) {
+  const grp = g.append('g');
+  grp.append('rect').attr('x', x).attr('y', y).attr('width', w).attr('height', h)
+    .attr('rx', 12).attr('fill', fill).attr('stroke', stroke).attr('stroke-width', 1.6)
+    .attr('stroke-dasharray', opts.dash || null);
+  lines.forEach((t, i) => {
+    grp.append('text').attr('x', x + w / 2).attr('y', y + 22 + i * 17)
+      .attr('text-anchor', 'middle')
+      .attr('font-size', i === 0 ? 14 : 11.5).attr('font-weight', i === 0 ? 700 : 400)
+      .attr('fill', opts.textFill || '#2d3142').attr('opacity', i === 0 ? 1 : 0.75)
+      .text(t);
+  });
+  return grp;
+}
+
+function arrow(g, pts, opts = {}) {
+  g.append('path')
+    .attr('d', 'M' + pts.map(p => p.join(',')).join(' L'))
+    .attr('fill', 'none')
+    .attr('stroke', opts.color || '#b9bdc9')
+    .attr('stroke-width', opts.width || 2)
+    .attr('stroke-dasharray', opts.dash || null)
+    .attr('marker-end', opts.noArrow ? null : 'url(#arr)');
+}
+
+function render() {
+  const L = I18N[lang];
+  document.documentElement.lang = L.htmlLang;
+  document.title = lang === 'ro' ? 'Schița POC — LLM-D Inference Gateway pe Proxmox i9' : 'POC Sketch — LLM-D Inference Gateway on a Proxmox i9';
+  d3.select('#t-title').html(L.title);
+  d3.select('#t-sub').text(L.sub);
+  d3.select('#l-guide').text(L.guide).attr('href', L.guideHref);
+  d3.select('#l-sims').text(L.sims).attr('href', L.simsHref);
+  d3.select('#phaseA').text(L.phaseA);
+  d3.select('#phaseB').text(L.phaseB);
+  d3.select('#resetBtn').text(L.reset);
+  d3.select('#ra-title').text(L.raTitle);
+  d3.select('#ra-note').text(L.raNote);
+  d3.select('#rb-title').text(L.rbTitle);
+  d3.select('#rb-note').text(L.rbNote);
+  d3.select('#t-footer').text(L.footer);
+
+  svgRoot.selectAll('*').remove();
+  svg = svgRoot.append('g');
+
+  const defs = svgRoot.append('defs');
+  defs.append('marker').attr('id', 'arr').attr('viewBox', '0 0 10 10')
+    .attr('refX', 9).attr('refY', 5).attr('markerWidth', 7).attr('markerHeight', 7)
+    .attr('orient', 'auto-start-reverse')
+    .append('path').attr('d', 'M0,0 L10,5 L0,10 z').attr('fill', '#b9bdc9');
+
+  // Proxmox + VM containers
+  svg.append('rect').attr('x', 172).attr('y', 22).attr('width', 770).attr('height', 656)
+    .attr('rx', 16).attr('fill', '#f7f6f3').attr('stroke', '#d8d5cf').attr('stroke-dasharray', '6 4');
+  svg.append('text').attr('x', 188).attr('y', 46).attr('font-size', 12.5).attr('font-weight', 700)
+    .attr('fill', '#5c6273').text(L.proxmox);
+  svg.append('rect').attr('x', 192).attr('y', 60).attr('width', 730).attr('height', 600)
+    .attr('rx', 14).attr('fill', '#ffffff').attr('stroke', '#e8e6e1');
+  svg.append('text').attr('x', 208).attr('y', 84).attr('font-size', 12.5).attr('font-weight', 700)
+    .attr('fill', '#4361ee').text(L.vm);
+
+  // InferencePool dashed group around pods
+  svg.append('rect').attr('x', POD.x - 18).attr('y', 96 - 22).attr('width', POD.w + 36).attr('height', 520)
+    .attr('rx', 12).attr('fill', 'none').attr('stroke', '#7b5ea7').attr('stroke-dasharray', '4 4').attr('opacity', 0.6);
+  svg.append('text').attr('x', POD.x + POD.w / 2).attr('y', 92).attr('text-anchor', 'middle')
+    .attr('font-size', 11.5).attr('font-weight', 700).attr('fill', '#7b5ea7').text(L.pool);
+
+  // edges (sub noduri)
+  arrow(svg, [[CLIENT.x + CLIENT.w, 323], [GW.x, 323]], { color: '#4361ee', width: 2.5 });
+  svg.append('text').attr('x', (CLIENT.x + CLIENT.w + GW.x) / 2).attr('y', 312).attr('text-anchor', 'middle')
+    .attr('font-size', 10).attr('fill', '#5c6273').text('HTTP :80');
+  arrow(svg, [[GW.x + GW.w, 300], [EPP.x, 300]], { color: '#e07a2f', dash: '5 4' });
+  arrow(svg, [[EPP.x, 345], [GW.x + GW.w, 345]], { color: '#e07a2f', dash: '5 4' });
+  svg.append('text').attr('x', (GW.x + GW.w + EPP.x) / 2).attr('y', 290).attr('text-anchor', 'middle')
+    .attr('font-size', 10).attr('fill', '#e07a2f').text(L.extproc);
+  PODS_Y.forEach(py => {
+    arrow(svg, [[EPP.x + EPP.w, EPP.y + EPP.h / 2], [POD.x, py + POD.h / 2]], { color: '#cfd3de', width: 1.4, dash: '2 4', noArrow: true });
+    arrow(svg, [[GW.x + GW.w, 323], [640, py + POD.h / 2], [POD.x, py + POD.h / 2]], { color: '#dfe3ec', width: 1.6 });
+  });
+  svg.append('text').attr('x', 648).attr('y', 70 + 0).attr('font-size', 0).text('');
+  svg.append('text').attr('x', (EPP.x + EPP.w + POD.x) / 2).attr('y', 250).attr('text-anchor', 'middle')
+    .attr('font-size', 10).attr('fill', '#9aa0b0').text(L.metrics);
+  svg.append('text').attr('x', (GW.x + GW.w + POD.x) / 2 + 30).attr('y', 416).attr('text-anchor', 'middle')
+    .attr('font-size', 10).attr('fill', '#9aa0b0').text(L.httproute);
+
+  // nodes
+  node(svg, CLIENT.x, CLIENT.y, CLIENT.w, CLIENT.h, '#f1f0ec', '#d8d5cf', I18N[lang].client);
+  node(svg, GW.x, GW.y, GW.w, GW.h, '#eef1fe', '#4361ee', L.gateway);
+  window.eppNode = node(svg, EPP.x, EPP.y, EPP.w, EPP.h, '#fdf1e6', '#e07a2f', L.epp);
+  window.podNodes = PODS_Y.map((py, i) => {
+    const n = node(svg, POD.x, py, POD.w, POD.h, '#eef1fe', '#4361ee', [L.pod(i + 1), L.podSub]);
+    n.append('text').attr('class', 'count').attr('x', POD.x + POD.w / 2).attr('y', py + POD.h - 14)
+      .attr('text-anchor', 'middle').attr('font-size', 12).attr('font-weight', 800).attr('fill', '#2a9d68')
+      .text(L.served(counts[i]));
+    return n;
+  });
+  node(svg, 215, 540, 300, 96, '#f7f6f3', '#d8d5cf', L.kserve, { dash: '4 3' });
+}
+
+function updateCounts() {
+  const L = I18N[lang];
+  window.podNodes.forEach((n, i) => n.select('.count').text(L.served(counts[i])));
+}
+
+function pathToPod(i) {
+  const py = PODS_Y[i] + POD.h / 2;
+  return svgRoot.append('path')
+    .attr('d', `M${CLIENT.x + CLIENT.w - 30},323 L${GW.x + GW.w / 2},323 L${EPP.x + EPP.w / 2},${EPP.y + EPP.h / 2} L${640},${py} L${POD.x + 18},${py}`)
+    .attr('fill', 'none').attr('stroke', 'none');
+}
+
+function flash(sel, color) {
+  sel.select('rect').transition().duration(120).attr('stroke-width', 4).attr('stroke', color)
+    .transition().duration(380).attr('stroke-width', 1.6).attr('stroke', sel === window.eppNode ? '#e07a2f' : '#4361ee');
+}
+
+function launch(podIdx, color, delay) {
+  const p = pathToPod(podIdx);
+  const len = p.node().getTotalLength();
+  const dur = 1000;
+  svgRoot.append('circle').attr('r', 7).attr('fill', color).attr('stroke', '#fff').attr('stroke-width', 1.5)
+    .attr('cx', -20).attr('cy', -20)
+    .transition().delay(delay).duration(dur).ease(d3.easeQuadInOut)
+    .attrTween('cx', () => t => p.node().getPointAtLength(t * len).x)
+    .attrTween('cy', () => t => p.node().getPointAtLength(t * len).y)
+    .on('end', function () {
+      d3.select(this).remove(); p.remove();
+      counts[podIdx]++; updateCounts();
+      flash(window.podNodes[podIdx], '#2a9d68');
+    });
+  setTimeout(() => flash(window.eppNode, '#d94f4f'), delay + dur * 0.42);
+}
+
+function runPhase(dist, colors) {
+  if (animating) return;
+  animating = true;
+  d3.selectAll('#phaseA,#phaseB').attr('disabled', true);
+  dist.forEach((podIdx, i) => launch(podIdx, colors[i % colors.length], i * 260));
+  setTimeout(() => {
+    animating = false;
+    d3.selectAll('#phaseA,#phaseB').attr('disabled', null);
+  }, dist.length * 260 + 1100);
+}
+
+document.getElementById('phaseA').addEventListener('click', () =>
+  runPhase(new Array(12).fill(2), ['#7b5ea7']));
+document.getElementById('phaseB').addEventListener('click', () =>
+  runPhase([0, 1, 2, 1, 0, 1, 2, 1, 0, 1, 2, 1],
+    ['#4361ee', '#2a9d68', '#e07a2f', '#7b5ea7', '#d94f4f', '#0e9aa7']));
+document.getElementById('resetBtn').addEventListener('click', () => {
+  counts = [0, 0, 0]; updateCounts();
+});
+document.getElementById('btn-ro').addEventListener('click', () => setLang('ro'));
+document.getElementById('btn-en').addEventListener('click', () => setLang('en'));
+function setLang(l) {
+  if (lang === l) return;
+  lang = l;
+  document.getElementById('btn-ro').classList.toggle('active', l === 'ro');
+  document.getElementById('btn-en').classList.toggle('active', l === 'en');
+  render();
+}
+render();
+</script>
+</body>
+</html>

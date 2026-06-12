@@ -1,0 +1,509 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>LLM-D explained simply — a guide for busy people</title>
+<style>
+  :root {
+    --bg: #fdfcfa;
+    --surface: #ffffff;
+    --ink: #2d3142;
+    --ink-soft: #5c6273;
+    --accent: #4361ee;
+    --accent-soft: #eef1fe;
+    --green: #2a9d68;
+    --green-soft: #e8f6ef;
+    --orange: #e07a2f;
+    --orange-soft: #fdf1e6;
+    --red: #d94f4f;
+    --red-soft: #fdecec;
+    --purple: #7b5ea7;
+    --purple-soft: #f3eefa;
+    --border: #e8e6e1;
+    --radius: 14px;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    background: var(--bg);
+    color: var(--ink);
+    line-height: 1.65;
+    font-size: 17px;
+  }
+  .container { max-width: 880px; margin: 0 auto; padding: 0 24px; }
+
+  /* ── Nav ── */
+  nav {
+    position: sticky; top: 0; z-index: 100;
+    background: rgba(253,252,250,0.92);
+    backdrop-filter: blur(8px);
+    border-bottom: 1px solid var(--border);
+  }
+  nav .container { display: flex; align-items: center; flex-wrap: wrap; gap: 6px 14px; padding-top: 10px; padding-bottom: 10px; }
+  nav .logo { font-weight: 800; color: var(--accent); white-space: nowrap; margin-right: 6px; }
+  nav a { color: var(--ink-soft); text-decoration: none; font-size: 13.5px; white-space: nowrap; padding: 4px 10px; border-radius: 999px; }
+  nav a:hover { color: var(--accent); background: var(--accent-soft); }
+
+  /* ── Hero ── */
+  header { padding: 72px 0 48px; text-align: center; }
+  header h1 { font-size: clamp(30px, 5vw, 46px); line-height: 1.15; margin-bottom: 18px; }
+  header h1 span { color: var(--accent); }
+  header p.sub {
+    font-size: 19px; color: var(--ink-soft); max-width: 640px; margin: 0 auto 24px;
+  }
+  .badge-row { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; }
+  .badge {
+    background: var(--accent-soft); color: var(--accent);
+    padding: 6px 14px; border-radius: 999px; font-size: 13px; font-weight: 600;
+  }
+
+  /* ── Sections ── */
+  section { padding: 48px 0; }
+  section + section { border-top: 1px solid var(--border); }
+  h2 { font-size: 28px; margin-bottom: 8px; }
+  h2 .num {
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 34px; height: 34px; border-radius: 10px;
+    background: var(--accent); color: #fff; font-size: 17px; margin-right: 10px;
+    vertical-align: middle;
+  }
+  .lead { color: var(--ink-soft); font-size: 18px; margin-bottom: 24px; }
+  h3 { font-size: 20px; margin: 28px 0 10px; }
+  p + p { margin-top: 12px; }
+  strong { color: var(--ink); }
+
+  /* ── Cards ── */
+  .cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 16px; margin: 24px 0; }
+  .card {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: var(--radius); padding: 20px;
+  }
+  .card .icon { font-size: 28px; margin-bottom: 10px; }
+  .card h4 { font-size: 16px; margin-bottom: 6px; }
+  .card p { font-size: 14.5px; color: var(--ink-soft); }
+
+  /* ── Callouts ── */
+  .callout {
+    border-radius: var(--radius); padding: 18px 22px; margin: 24px 0;
+    border: 1px solid; font-size: 15.5px;
+  }
+  .callout.tip   { background: var(--green-soft);  border-color: #bfe5d2; }
+  .callout.warn  { background: var(--orange-soft); border-color: #f3d9bd; }
+  .callout.idea  { background: var(--accent-soft); border-color: #ccd6fb; }
+  .callout .label { font-weight: 700; display: block; margin-bottom: 4px; }
+  .callout.tip .label { color: var(--green); }
+  .callout.warn .label { color: var(--orange); }
+  .callout.idea .label { color: var(--accent); }
+
+  /* ── Analogy box ── */
+  .analogy {
+    background: var(--purple-soft); border: 1px solid #e0d4f0;
+    border-radius: var(--radius); padding: 20px 24px; margin: 24px 0;
+  }
+  .analogy .label { color: var(--purple); font-weight: 700; font-size: 13px; text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 6px; }
+
+  /* ── Diagrams ── */
+  .diagram {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: var(--radius); padding: 24px; margin: 24px 0;
+    overflow-x: auto;
+  }
+  .diagram .title { font-size: 13px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; color: var(--ink-soft); margin-bottom: 18px; text-align: center; }
+  .flow { display: flex; align-items: center; justify-content: center; gap: 8px; flex-wrap: wrap; }
+  .node {
+    padding: 10px 16px; border-radius: 10px; font-size: 14px; font-weight: 600;
+    text-align: center; min-width: 90px;
+  }
+  .node small { display: block; font-weight: 400; font-size: 12px; opacity: 0.75; }
+  .n-blue   { background: var(--accent-soft); color: var(--accent); border: 1.5px solid #ccd6fb; }
+  .n-green  { background: var(--green-soft);  color: var(--green);  border: 1.5px solid #bfe5d2; }
+  .n-orange { background: var(--orange-soft); color: var(--orange); border: 1.5px solid #f3d9bd; }
+  .n-purple { background: var(--purple-soft); color: var(--purple); border: 1.5px solid #e0d4f0; }
+  .n-gray   { background: #f4f3f0; color: var(--ink-soft); border: 1.5px solid var(--border); }
+  .arrow { color: #b9bdc9; font-size: 20px; font-weight: 700; }
+  .stack-col { display: flex; flex-direction: column; gap: 8px; align-items: stretch; }
+
+  /* ── Tiers (memorie) ── */
+  .tiers { display: flex; flex-direction: column; gap: 0; margin: 24px 0; }
+  .tier { display: flex; align-items: center; gap: 16px; padding: 14px 20px; border: 1px solid var(--border); background: var(--surface); }
+  .tier:first-child { border-radius: var(--radius) var(--radius) 0 0; }
+  .tier:last-child { border-radius: 0 0 var(--radius) var(--radius); }
+  .tier + .tier { border-top: none; }
+  .tier .bar { height: 12px; border-radius: 6px; }
+  .tier .info { flex: 1; }
+  .tier .info b { display: block; font-size: 15px; }
+  .tier .info span { font-size: 13.5px; color: var(--ink-soft); }
+  .tier .speed { font-size: 13px; font-weight: 700; white-space: nowrap; }
+
+  /* ── Table ── */
+  table { width: 100%; border-collapse: collapse; margin: 24px 0; font-size: 15px; background: var(--surface); border-radius: var(--radius); overflow: hidden; border: 1px solid var(--border); }
+  th, td { padding: 12px 16px; text-align: left; border-bottom: 1px solid var(--border); vertical-align: top; }
+  th { background: #f7f6f3; font-size: 13.5px; text-transform: uppercase; letter-spacing: 0.04em; color: var(--ink-soft); }
+  tr:last-child td { border-bottom: none; }
+  td:first-child { font-weight: 600; }
+
+  /* ── Stats ── */
+  .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 16px; margin: 24px 0; }
+  .stat { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 20px; text-align: center; }
+  .stat .big { font-size: 34px; font-weight: 800; color: var(--accent); }
+  .stat .lbl { font-size: 13.5px; color: var(--ink-soft); margin-top: 4px; }
+
+  /* ── Glossary ── */
+  details {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 10px; padding: 14px 18px; margin-bottom: 10px;
+  }
+  details summary { cursor: pointer; font-weight: 600; font-size: 15.5px; }
+  details p { margin-top: 10px; font-size: 14.5px; color: var(--ink-soft); }
+  code {
+    background: #f1f0ec; padding: 2px 7px; border-radius: 6px;
+    font-size: 0.86em; font-family: "SF Mono", ui-monospace, Menlo, Consolas, monospace;
+  }
+
+  ul.nice { padding-left: 0; list-style: none; margin: 16px 0; }
+  ul.nice li { padding: 8px 0 8px 30px; position: relative; }
+  ul.nice li::before { content: "✓"; position: absolute; left: 4px; color: var(--green); font-weight: 800; }
+
+  footer { padding: 40px 0 60px; text-align: center; color: var(--ink-soft); font-size: 14px; border-top: 1px solid var(--border); }
+  footer a { color: var(--accent); }
+
+  @media (max-width: 600px) {
+    body { font-size: 16px; }
+    .flow { flex-direction: column; }
+    .arrow { transform: rotate(90deg); }
+  }
+</style>
+</head>
+<body>
+
+<nav>
+  <div class="container">
+    <span class="logo">LLM-D 101</span>
+    <a href="#problema">The Problem</a>
+    <a href="#kvcache">KV Cache</a>
+    <a href="#routing">Routing</a>
+    <a href="#pd">P/D Split</a>
+    <a href="#moe">MoE / Wide EP</a>
+    <a href="#offloading">Offloading</a>
+    <a href="#kserve">vs. KServe</a>
+    <a href="#glosar">Glossary</a>
+    <a href="llmd-simulatoare.en.html" style="color:var(--accent);font-weight:700;">🎛️ Simulators</a>
+    <a href="poc.html">🗺️ POC sketch</a>
+    <a href="llmd-explicat.html" style="font-weight:700;">🇷🇴 RO</a>
+  </div>
+</nav>
+
+<header>
+  <div class="container">
+    <h1>LLM-D, explained <span>in plain language</span></h1>
+    <p class="sub">Used KServe a few years ago, and meanwhile the inference world has changed completely? This guide brings you up to speed: what LLM-D is, why it exists, and what all the new terms mean.</p>
+    <div class="badge-row">
+      <span class="badge">Open Source</span>
+      <span class="badge">Kubernetes-native</span>
+      <span class="badge">vLLM at the core</span>
+      <span class="badge">IBM · Red Hat · AMD · Google · NVIDIA</span>
+    </div>
+  </div>
+</header>
+
+<section id="tldr">
+  <div class="container">
+    <h2>⚡ TL;DR — the 30-second version</h2>
+    <p class="lead">LLM-D is an <strong>open source distributed inference stack</strong> for LLMs, launched in May 2025. It takes vLLM (the engine that actually runs the model) and orchestrates it intelligently on Kubernetes: cache-aware routing, prefill/decode separation, autoscaling, and support for huge models across dozens of GPUs.</p>
+    <div class="cards">
+      <div class="card"><div class="icon">🧠</div><h4>Smart scheduler</h4><p>Routes requests to the pod that already has the context in cache, instead of blindly round-robining.</p></div>
+      <div class="card"><div class="icon">✂️</div><h4>Separate prefill/decode</h4><p>The two phases of inference run on different instances, each optimized for its own job.</p></div>
+      <div class="card"><div class="icon">📈</div><h4>An autoscaler built for AI</h4><p>Scales up/down based on inference metrics, including scale-to-zero for rarely used models.</p></div>
+    </div>
+    <div class="callout idea">
+      <span class="label">Why you should care</span>
+      The production numbers: from <strong>3× better latency</strong> on long prompts, up to <strong>57× faster</strong> on certain workloads with cache-aware routing. It's not magic — it's just avoiding work that's already been done.
+    </div>
+  </div>
+</section>
+
+<section id="problema">
+  <div class="container">
+    <h2><span class="num">1</span>Why LLM inference isn't a regular web workload</h2>
+    <p class="lead">Back in the classic KServe days, a request was a request: it came in, got processed, went out. Stateless, predictable, simple load balancer. LLM inference broke all of those assumptions.</p>
+    <div class="cards">
+      <div class="card"><div class="icon">📏</div><h4>Unpredictable requests</h4><p>A prompt can be 50 tokens or 50,000. Context length dramatically changes the compute and memory cost. You can't do capacity planning like you would for a REST API.</p></div>
+      <div class="card"><div class="icon">💾</div><h4>State everywhere</h4><p>Every conversation builds up a KV cache. If the next request lands on a different pod, everything gets recomputed from scratch. A classic load balancer has no clue about any of this.</p></div>
+      <div class="card"><div class="icon">⚖️</div><h4>Expensive SLOs</h4><p>Customers pay for guaranteed latency. One bad scheduling decision = wasted GPUs or a missed SLO. Both cost you serious money.</p></div>
+      <div class="card"><div class="icon">🧩</div><h4>Two different phases</h4><p>Inference is no longer a monolith: prefill (processing the prompt) and decode (generating the response) have completely different hardware needs.</p></div>
+    </div>
+    <div class="analogy">
+      <div class="label">Analogy</div>
+      A classic load balancer is like a taxi dispatcher who sends customers to random cars. LLM-D is the dispatcher who knows which driver <em>drove this customer yesterday and remembers the address</em> — the trip gets 10 times shorter.
+    </div>
+  </div>
+</section>
+
+<section id="kvcache">
+  <div class="container">
+    <h2><span class="num">2</span>KV Cache — the central concept of the whole story</h2>
+    <p class="lead">If you take away one thing from this page, make it this. Almost every optimization in LLM-D revolves around the KV cache.</p>
+
+    <h3>What is it?</h3>
+    <p>Transformers understand context through <strong>self-attention</strong>: every token compares itself against all the tokens before it. That scales <strong>quadratically</strong> with context length — it gets very expensive very fast. The fix: save the intermediate results (the keys <em>K</em> and values <em>V</em>) and <strong>reuse</strong> them instead of recomputing them at every step. That's the KV cache.</p>
+
+    <div class="diagram">
+      <div class="title">Without cache vs. with cache</div>
+      <div class="flow">
+        <div class="stack-col">
+          <div class="node n-red" style="background:var(--red-soft);color:var(--red);border:1.5px solid #f0c4c4;">No cache<small>recompute the ENTIRE context for every generated token 🐌</small></div>
+          <div class="node n-green">With KV cache<small>compute only the new token, the rest comes from memory ⚡</small></div>
+        </div>
+      </div>
+    </div>
+
+    <h3>Why does it matter so much?</h3>
+    <p>Reusing a prefix from cache is <strong>at least an order of magnitude cheaper</strong> than recomputing it (prefill). Manus (an AI agent platform, now at Meta) said it outright: <em>"KV cache hit rate is the single most important metric in production"</em>. That's why OpenAI and others charge cached tokens at <strong>10× cheaper</strong> rates.</p>
+
+    <div class="callout tip">
+      <span class="label">A concrete example from the meetup</span>
+      A 10,000-token prompt on Qwen 32B: the first request takes <strong>4.3 seconds</strong>. The second identical request (cache hit): <strong>~0.6 seconds</strong>. 7 times faster, zero wasted compute.
+    </div>
+
+    <h3>Where does this show up in practice?</h3>
+    <ul class="nice">
+      <li><strong>Multi-turn chat</strong> — on every turn you reuse the entire conversation history so far.</li>
+      <li><strong>AI agents</strong> — on every tool call, the agent's context is its complete history. The input/output ratio can be 100:1 — almost all of it is reusable prefix.</li>
+      <li><strong>Parallel branching</strong> — multiple agents forking off the same shared context (tree-of-thought, swarms).</li>
+    </ul>
+
+    <div class="callout warn">
+      <span class="label">The problem</span>
+      The KV cache grows enormously. Even for a small 7B model, a typical conversational workload quickly reaches <strong>terabytes</strong> of KV cache. It doesn't fit in GPU memory. Hence the need for smart routing (section 3) and offloading (section 6).
+    </div>
+  </div>
+</section>
+
+<section id="routing">
+  <div class="container">
+    <h2><span class="num">3</span>Inference Scheduler — smart routing, not round-robin</h2>
+    <p class="lead">When you run multiple replicas of a model, the KV cache gets fragmented across pods. The key question: <em>where do you send the next request?</em></p>
+
+    <div class="diagram">
+      <div class="title">Naive load balancer vs. cache-aware scheduler</div>
+      <div class="flow">
+        <div class="node n-gray">Request<small>turn 2 of the conversation</small></div>
+        <div class="arrow">→</div>
+        <div class="stack-col">
+          <div class="node n-red" style="background:var(--red-soft);color:var(--red);border:1.5px solid #f0c4c4;">Naive LB → Pod B<small>cache miss, recomputes everything 😩</small></div>
+          <div class="node n-green">LLM-D → Pod A<small>cache hit, the context is already there 🎯</small></div>
+        </div>
+      </div>
+    </div>
+
+    <p>LLM-D builds on the <strong>Gateway API Inference Extension</strong> from Kubernetes (so it doesn't reinvent the wheel) and adds inference-specific routing plugins:</p>
+    <ul class="nice">
+      <li><strong>Prefix-aware routing</strong> — each pod emits events about what it holds in cache; the scheduler keeps a global map and sends the request to wherever the prefix lives.</li>
+      <li><strong>Load-aware routing</strong> — looks at vLLM metrics (queue depth, utilization) via Prometheus and avoids overloaded pods.</li>
+      <li><strong>The combination of both</strong> — balances cache affinity against load distribution. Extensible: you can write your own plugin (Endpoint Picker).</li>
+    </ul>
+
+    <div class="callout tip">
+      <span class="label">Benchmark result</span>
+      On a 16× H100 cluster: naive routing and load-aware-only routing both <strong>blow up in TTFT</strong> as traffic grows. Precise prefix-aware routing hits the cluster's theoretical maximum. On some workloads: up to <strong>57× faster</strong>.
+    </div>
+  </div>
+</section>
+
+<section id="pd">
+  <div class="container">
+    <h2><span class="num">4</span>Prefill/Decode Disaggregation — divide et impera</h2>
+    <p class="lead">Inference has two phases with completely different personalities. LLM-D separates them onto dedicated instances.</p>
+
+    <div class="diagram">
+      <div class="title">The two phases of inference</div>
+      <div class="flow">
+        <div class="node n-orange">PREFILL<small>processes the prompt<br>compute-bound 🔥<br>determines TTFT</small></div>
+        <div class="arrow">→</div>
+        <div class="node n-purple">KV cache transfer<small>NIXL / RDMA / TCP</small></div>
+        <div class="arrow">→</div>
+        <div class="node n-blue">DECODE<small>generates token by token<br>memory-bound 💾<br>determines per-token speed</small></div>
+      </div>
+    </div>
+
+    <div class="analogy">
+      <div class="label">Analogy</div>
+      It's like a restaurant kitchen: <strong>prefill</strong> is the mise-en-place (chopping vegetables intensely, over continuous heat — heavy lifting), <strong>decode</strong> is the plating (assembling plate by plate — rhythm work). If the same cook does both, they block each other. Separate them → each station gets sized for its own job.
+    </div>
+
+    <h3>The details that matter</h3>
+    <p>A year ago this was an experimental topic; <strong>today it runs in production</strong> (Mistral and others). But it's not free: you have to orchestrate how many prefillers vs. how many decoders you run, what parallelism level each one uses, and how the KV cache gets transferred between them.</p>
+    <div class="callout warn">
+      <span class="label">An important nuance from the meetup</span>
+      P/D disaggregation <strong>doesn't always help</strong>. At very low or very high concurrency, the benefit vanishes. In the middle zone you can gain ~<strong>1.5× throughput</strong>. It depends on the model and the workload — which is exactly why LLM-D offers "well-lit paths": tested recipes, so you don't have to explore the entire knob space on your own.
+    </div>
+    <p>For KV transfer between prefillers and decoders, LLM-D uses <strong>NIXL</strong> (a transport library from the NVIDIA Dynamo stack) — peer-to-peer over RDMA, or, a recent contribution, over <strong>plain TCP</strong> (for those without expensive RDMA networks).</p>
+  </div>
+</section>
+
+<section id="moe">
+  <div class="container">
+    <h2><span class="num">5</span>MoE and Wide Expert Parallelism — today's giant models</h2>
+    <p class="lead">Almost all recent large models (DeepSeek, GPT-OSS, etc.) are <strong>Mixture-of-Experts</strong>. That fundamentally changes how you serve them.</p>
+
+    <h3>What is MoE, in short?</h3>
+    <p>Instead of one huge dense layer that every token passes through, the model has <strong>hundreds of small "experts"</strong> (e.g. DeepSeek: 256 experts) and a <strong>router</strong> that picks just a few of them (e.g. 8) for each token. The model is huge on paper but activates very little per token — <em>sparsity</em>. Empirically, sparse models simply perform better at the same compute cost.</p>
+
+    <div class="analogy">
+      <div class="label">Analogy</div>
+      A hospital: you don't send every patient to all 256 doctors. The front desk (the router) sends them to the 8 relevant specialists. Efficient — but if everyone shows up with the same problem, the cardiologist gets swamped while the dermatologist sits idle. That's <em>expert imbalance</em>.
+    </div>
+
+    <h3>The consequences for serving</h3>
+    <div class="cards">
+      <div class="card"><div class="icon">↔️</div><h4>From TP to EP/DP</h4><p>Tensor parallelism stops making sense (the inner dimensions get too small). You move to expert parallelism + data parallelism, across multiple nodes — 16, 32, even 96 GPUs acting as a single system.</p></div>
+      <div class="card"><div class="icon">⚖️</div><h4>EPLB</h4><p>Expert Parallel Load Balancing: "hot" experts get replicated and rebalanced online, during inference, so no GPU becomes the bottleneck.</p></div>
+      <div class="card"><div class="icon">🔀</div><h4>DBO</h4><p>Dual Batch Overlap: the forward pass is split into two micro-batches, so one's compute overlaps with the other's communication. On H200: up to a 2× gain.</p></div>
+      <div class="card"><div class="icon">👥</div><h4>LeaderWorkerSet</h4><p>A new Kubernetes API that lets a group of pods run as a coordinated "gang" (gang scheduling), with a leader that loads the model — essential for multi-node deployments.</p></div>
+    </div>
+
+    <div class="stats">
+      <div class="stat"><div class="big">2.2k</div><div class="lbl">tokens/sec/GPU — DeepSeek R1 on H200 with wide EP</div></div>
+      <div class="stat"><div class="big">10–15k</div><div class="lbl">the target on GB200 (multi-node NVLink is ~10× faster)</div></div>
+      <div class="stat"><div class="big">8×</div><div class="lbl">more KV cache just by switching from TP to DP on DeepSeek (MLA)</div></div>
+    </div>
+
+    <p>The rule of thumb from the meetup: <strong>decode goes wide</strong> (EP32–EP96, wants high concurrency and lots of KV cache), <strong>prefill stays narrow</strong> (EP16) — if you need more prefill throughput, you simply add more prefillers.</p>
+  </div>
+</section>
+
+<section id="offloading">
+  <div class="container">
+    <h2><span class="num">6</span>KV Cache Offloading — when GPU memory runs out</h2>
+    <p class="lead">GPU memory is the most expensive resource in the cluster, and the KV cache grows into terabytes. The solution: a hierarchy of storage tiers.</p>
+
+    <div class="tiers">
+      <div class="tier">
+        <div class="bar" style="width:60px;background:var(--accent);"></div>
+        <div class="info"><b>1. GPU memory (HBM)</b><span>fastest, most expensive, smallest — this is where vLLM works natively</span></div>
+        <div class="speed" style="color:var(--accent);">⚡⚡⚡</div>
+      </div>
+      <div class="tier">
+        <div class="bar" style="width:140px;background:var(--green);"></div>
+        <div class="info"><b>2. RAM / CPU (DRAM)</b><span>asynchronous GPU→CPU offloading via DMA; comes out-of-the-box in vLLM</span></div>
+        <div class="speed" style="color:var(--green);">⚡⚡</div>
+      </div>
+      <div class="tier">
+        <div class="bar" style="width:260px;background:var(--orange);"></div>
+        <div class="info"><b>3. Storage / Disk (POSIX)</b><span>LLM-D's filesystem connector — any POSIX storage, including parallel filesystems; huge, but slower</span></div>
+        <div class="speed" style="color:var(--orange);">⚡</div>
+      </div>
+    </div>
+
+    <p>How it works in practice: the GPU fills up → evictions begin → performance would drop, but <strong>the CPU tier picks up the cache hits</strong> → when that fills up too, <strong>the storage tier carries the workload</strong> much further. Result: the same hardware serves many more users before you "hit the wall".</p>
+
+    <p>Beyond vertical ("north-south") offloading, there is also <strong>horizontal ("east-west") sharing</strong>: a shared storage tier from which any pod can read KV cache computed by another — <em>compute once, reuse anywhere</em>. This is where LMCache or KVBM come into play as backends.</p>
+
+    <div class="callout idea">
+      <span class="label">What's next (LLM-D 0.6+)</span>
+      <strong>Workload-aware</strong> scheduling: a scheduler that understands an agent's program (not isolated requests), context-based eviction instead of naive LRU (keep the system prompt, know that the agent off on a tool call will come back), and proactively moving state before the request even arrives. Plus support for reinforcement learning, where inference becomes the bottleneck of training.
+    </div>
+  </div>
+</section>
+
+<section id="kserve">
+  <div class="container">
+    <h2><span class="num">7</span>Coming from the KServe world? Here's what changed</h2>
+    <p class="lead">KServe remains excellent for serving "classic" models (sklearn, XGBoost, small deep learning models). But LLMs have requirements that the stateless request/response architecture just doesn't cover.</p>
+    <table>
+      <tr><th>Concept</th><th>The KServe world (then)</th><th>The LLM-D world (now)</th></tr>
+      <tr><td>The unit of serving</td><td>One pod = one model, stateless</td><td>A group of coordinated pods (prefill + decode, multi-node, gang scheduling with LeaderWorkerSet)</td></tr>
+      <tr><td>Load balancing</td><td>Round-robin / least-connections</td><td>Routing based on the KV cache and inference metrics (Gateway API Inference Extension)</td></tr>
+      <tr><td>State</td><td>None — every request is independent</td><td>The KV cache is king: tracked globally, routed with affinity, offloaded to CPU/disk, shared across pods</td></tr>
+      <tr><td>Autoscaling</td><td>HPA / KNative on CPU, RPS</td><td>Variant Autoscaler on inference metrics + SLOs; reactive or proactive; scale-to-zero</td></tr>
+      <tr><td>The cost of one bad decision</td><td>A few ms of latency</td><td>Recomputing a 50k-token prefill — orders of magnitude in cost and latency</td></tr>
+      <tr><td>The inference engine</td><td>Triton, TorchServe, sklearn server…</td><td>vLLM (primary), SGLang (integration in progress)</td></tr>
+    </table>
+    <div class="callout tip">
+      <span class="label">The good news for you</span>
+      LLM-D's philosophy is <strong>"don't reinvent the wheel"</strong>: everything is built on standard Kubernetes — Gateway API, CRDs, Helm charts, Prometheus. If you know how to operate a Kubernetes cluster (and you do, from the KServe era), the barrier to entry is low. On top of that, "well-lit paths" = blueprints, tested and benchmarked, for the common patterns, with a detailed blog post for each one.
+    </div>
+    <div class="callout warn">
+      <span class="label">The reality on the ground (AMD's lesson from the meetup)</span>
+      Deployments don't always work "on the first try": mismatched CRD versions, node affinity on shared clusters, RDMA/NIXL paths that don't line up with the container image. Nothing insurmountable — but verify the alignment between the vLLM image, the network drivers, and the hardware stack (ROCm on AMD, CUDA on NVIDIA) before blaming LLM-D.
+    </div>
+  </div>
+</section>
+
+<section id="arhitectura">
+  <div class="container">
+    <h2><span class="num">8</span>The big picture — how it all fits together</h2>
+    <div class="diagram">
+      <div class="title">The LLM-D architecture, simplified</div>
+      <div class="flow" style="flex-direction:column;gap:12px;">
+        <div class="node n-gray" style="width:100%;max-width:560px;">👤 Inference requests (chat, agents, API)</div>
+        <div class="arrow" style="transform:rotate(90deg);">→</div>
+        <div class="node n-blue" style="width:100%;max-width:560px;">🧠 Inference Scheduler<small>Gateway API + plugins: prefix-aware, load-aware, custom</small></div>
+        <div class="arrow" style="transform:rotate(90deg);">→</div>
+        <div class="flow">
+          <div class="node n-orange">Prefillers<small>vLLM, EP16<br>scale horizontally</small></div>
+          <div class="node n-purple">NIXL<small>KV transfer<br>RDMA or TCP</small></div>
+          <div class="node n-blue">Decoders<small>vLLM, EP32–96<br>LeaderWorkerSet</small></div>
+        </div>
+        <div class="arrow" style="transform:rotate(90deg);">→</div>
+        <div class="node n-green" style="width:100%;max-width:560px;">💾 KV cache tiers: GPU → CPU → Storage<small>+ east-west sharing across pods (LMCache, filesystem connector)</small></div>
+        <div class="flow" style="margin-top:8px;">
+          <div class="node n-gray">📈 Variant Autoscaler<small>reactive + proactive, scale-to-zero</small></div>
+          <div class="node n-gray">📊 Prometheus<small>vLLM metrics for routing</small></div>
+        </div>
+      </div>
+    </div>
+    <p>Three pillars to remember: <strong>(1)</strong> the smart scheduler that routes on state, <strong>(2)</strong> the orchestration of disaggregated prefill/decode with KV transfer, <strong>(3)</strong> the specialized autoscaler. All cross-platform: NVIDIA, AMD (ROCm), Google TPU.</p>
+  </div>
+</section>
+
+<section id="glosar">
+  <div class="container">
+    <h2><span class="num">9</span>Quick glossary — all the terms in one place</h2>
+    <p class="lead">Click any term for an explanation.</p>
+    <details><summary>KV Cache</summary><p>The model's working memory: the keys (K) and values (V) computed by self-attention for the tokens already processed, saved so they don't get recomputed. Reusing it is ≥10× cheaper than recomputing.</p></details>
+    <details><summary>Prefill</summary><p>The first phase of inference: processing the entire prompt at once. Compute-intensive. Determines time-to-first-token (TTFT).</p></details>
+    <details><summary>Decode</summary><p>The second phase: generating the response, token by token (autoregressive). Limited by memory bandwidth, not compute.</p></details>
+    <details><summary>P/D Disaggregation</summary><p>Separating prefill and decode onto dedicated instances, each sized and configured for its own phase, with KV cache transfer between them.</p></details>
+    <details><summary>TTFT / Time To First Token</summary><p>How long the user waits until the first word of the response appears. The number 1 UX metric, dominated by prefill (or avoided entirely via a cache hit).</p></details>
+    <details><summary>MoE / Mixture of Experts</summary><p>An architecture where the model has hundreds of sub-networks ("experts") and a router that activates only a few per token. A huge model on paper, with small compute per token.</p></details>
+    <details><summary>EP / Expert Parallelism and Wide EP</summary><p>Distributing a MoE model's experts across multiple GPUs/nodes. "Wide" = a very large number of GPUs (32–96) working as a single inference system.</p></details>
+    <details><summary>EPLB / Expert Parallel Load Balancing</summary><p>Online replication and rebalancing of "hot" experts, so no GPU becomes a bottleneck when the token distribution differs from the one seen during training.</p></details>
+    <details><summary>DBO / Dual Batch Overlap</summary><p>Splitting the forward pass into two micro-batches to overlap one's compute with the other's communication. ~2× gain on H200; pointless on GB200 (the NVLink is too fast for it to matter).</p></details>
+    <details><summary>NIXL</summary><p>A transport library (from NVIDIA Dynamo) for moving KV cache between nodes: peer-to-peer over RDMA or, more recently, over TCP. AMD has its own equivalent, RIXL.</p></details>
+    <details><summary>LeaderWorkerSet (LWS)</summary><p>A new Kubernetes API that runs a group of pods as one coordinated unit (one leader + workers), needed for serving models that don't fit on a single node.</p></details>
+    <details><summary>Gateway API Inference Extension</summary><p>A Kubernetes extension that allows treating inference requests with inference-specific metadata and metrics, the foundation LLM-D builds its scheduler on. The routing plugins are called Endpoint Pickers.</p></details>
+    <details><summary>Prefix-aware routing</summary><p>Routing a request to the pod that already has the prefix (the conversation history) in its KV cache, instead of blindly spreading the traffic.</p></details>
+    <details><summary>Well-lit paths</summary><p>The LLM-D philosophy: validated, benchmarked blueprints for the common deployment patterns, so you don't explore hundreds of knob combinations on your own. Each one comes with a guide + blog post.</p></details>
+    <details><summary>Variant Autoscaler</summary><p>LLM-D's autoscaler: reactive mode (on utilization) or proactive (deciding even the P/D configuration), with scale-to-zero for rarely used models.</p></details>
+    <details><summary>SLO / Service Level Objective</summary><p>The performance guarantee (e.g. latency) you promise your customers. In inference, the SLO is the currency: you bill on it, you size your cluster on it.</p></details>
+    <details><summary>TP / DP — Tensor / Data Parallelism</summary><p>TP: split a model's layers across multiple GPUs (the classic approach, for dense models). DP: run parallel copies that handle different requests. On MoE with MLA (DeepSeek), DP instead of TP gives you ~8× more KV cache room, because TP would replicate it.</p></details>
+    <details><summary>vLLM</summary><p>The open source inference engine at the core of LLM-D. It pioneered PagedAttention (efficient GPU memory management for the KV cache) and automatic prefix caching.</p></details>
+    <details><summary>SGLang</summary><p>An alternative inference engine to vLLM; LLM-D is adding basic support for it, so the stack becomes agnostic at the engine level too.</p></details>
+  </div>
+</section>
+
+<section id="implicare">
+  <div class="container">
+    <h2><span class="num">10</span>Want to get involved, or just dig deeper?</h2>
+    <p class="lead">The project is young (launched in May 2025), applying for CNCF Sandbox, with 8 active special interest groups (SIGs) — including P/D disaggregation, KV management and, recently, RL.</p>
+    <ul class="nice">
+      <li><strong>Official site:</strong> <a href="https://llm-d.ai">llm-d.ai</a> — the "well-lit paths" guides are the best practical starting point.</li>
+      <li><strong>GitHub:</strong> the <code>llm-d</code> organization — main repo <code>llm-d/llm-d</code>, plus <code>llm-d-kv-cache</code> and <code>llm-d-inference-scheduler</code>.</li>
+      <li><strong>Slack + community calls</strong> — open to anyone; that's where the project's direction gets decided.</li>
+      <li><strong>You don't need ML math</strong> — it's distributed infrastructure: networking, observability, Kubernetes, Grafana. Exactly the world you come from.</li>
+      <li><strong>Commercial downstream:</strong> it's part of Red Hat AI, if you want enterprise support.</li>
+    </ul>
+  </div>
+</section>
+
+<footer>
+  <div class="container">
+    <p>Guide created from the first LLM-D meetup (talks: IBM Research, AMD, Red Hat) · June 2026</p>
+    <p style="margin-top:8px;">P.S. The joke from the meetup: two LLMs walk into a bar. The first one orders a beer — "3 dollars". The second one: "same for me, but I'm paying <em>cache</em>" 🥁 — because cached tokens cost 10× less.</p>
+  </div>
+</footer>
+
+</body>
+</html>

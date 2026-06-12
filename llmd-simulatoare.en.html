@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html lang="ro">
+<html lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Simulatoare LLM-D — vezi cu ochii tăi cum funcționează</title>
+<title>LLM-D Simulators — see with your own eyes how it works</title>
 <style>
   :root {
     --bg: #fdfcfa;
@@ -152,18 +152,16 @@
 
 <header>
   <div class="container">
-    <h1>Simulatoare <span>LLM-D &amp; vLLM</span> 🎛️</h1>
-    <p>Șase simulatoare interactive ca să <em>vezi</em> conceptele de la meetup în acțiune, nu doar să citești despre ele. Apasă pe butoane, trage de slidere, compară.</p>
-    <a class="back" href="llmd-explicat.html">← înapoi la ghidul explicat</a>
-    <a class="back" href="poc.html" style="margin-left:12px;">🗺️ Schița POC</a>
-    <a class="back" href="llmd-simulatoare.en.html" style="margin-left:12px;font-weight:700;">🇬🇧 EN</a>
+    <h1><span>LLM-D &amp; vLLM</span> Simulators 🎛️</h1>
+    <p>Six interactive simulators so you can <em>see</em> the concepts from the meetup in action, not just read about them. Press the buttons, drag the sliders, compare.</p>
+    <a class="back" href="llmd-explicat.en.html">← back to the explainer guide</a><a class="back" href="llmd-simulatoare.html" style="margin-left:12px;font-weight:700;">🇷🇴 RO</a>
   </div>
 </header>
 
 <div class="tabs container">
   <button class="tab active" data-sim="s1">1 · KV Cache</button>
   <button class="tab" data-sim="s2">2 · PagedAttention</button>
-  <button class="tab" data-sim="s3">3 · Rutare inteligentă</button>
+  <button class="tab" data-sim="s3">3 · Smart routing</button>
   <button class="tab" data-sim="s4">4 · P/D Disaggregation</button>
   <button class="tab" data-sim="s5">5 · KV Offloading</button>
   <button class="tab" data-sim="s6">6 · MoE + EPLB</button>
@@ -172,39 +170,39 @@
 <!-- ════════ SIM 1: KV CACHE ════════ -->
 <section class="sim active" id="s1">
   <div class="container">
-    <h2>🧠 KV Cache — de ce nu recalculăm trecutul</h2>
-    <p class="lead">Modelul generează token cu token. La fiecare pas, atenția are nevoie de cheile și valorile (K/V) <em>tuturor</em> tokenilor de dinainte. Fără cache, le recalculezi la fiecare pas. Cu cache, le citești din memorie și calculezi doar tokenul nou.</p>
+    <h2>🧠 KV Cache — why we don't recompute the past</h2>
+    <p class="lead">The model generates token by token. At every step, attention needs the keys and values (K/V) of <em>all</em> the tokens that came before. Without a cache, you recompute them at every step. With a cache, you read them from memory and only compute the new token.</p>
     <div class="panel">
       <div class="controls">
-        <button class="btn" id="s1-play">▶ Pornește generarea</button>
+        <button class="btn" id="s1-play">▶ Start generation</button>
         <button class="btn secondary" id="s1-reset">↺ Reset</button>
-        <div class="ctrl"><label>Lungime prompt: <b id="s1-pl-v">6</b> tokeni</label><input type="range" id="s1-pl" min="3" max="14" value="6"></div>
-        <div class="ctrl"><label>Viteză</label><input type="range" id="s1-speed" min="1" max="10" value="4"></div>
+        <div class="ctrl"><label>Prompt length: <b id="s1-pl-v">6</b> tokens</label><input type="range" id="s1-pl" min="3" max="14" value="6"></div>
+        <div class="ctrl"><label>Speed</label><input type="range" id="s1-speed" min="1" max="10" value="4"></div>
       </div>
       <div class="two-col">
         <div>
-          <div class="col-title bad">❌ Fără KV cache</div>
+          <div class="col-title bad">❌ Without KV cache</div>
           <div class="kvgrid" id="s1-grid-no"></div>
           <div class="metrics">
-            <div class="metric bad"><div class="v" id="s1-ops-no">0</div><div class="l">operații K/V totale</div></div>
+            <div class="metric bad"><div class="v" id="s1-ops-no">0</div><div class="l">total K/V operations</div></div>
           </div>
         </div>
         <div>
-          <div class="col-title good">✓ Cu KV cache (vLLM)</div>
+          <div class="col-title good">✓ With KV cache (vLLM)</div>
           <div class="kvgrid" id="s1-grid-yes"></div>
           <div class="metrics">
-            <div class="metric good"><div class="v" id="s1-ops-yes">0</div><div class="l">operații K/V totale</div></div>
-            <div class="metric good"><div class="v" id="s1-ratio">—</div><div class="l">mai puține operații</div></div>
+            <div class="metric good"><div class="v" id="s1-ops-yes">0</div><div class="l">total K/V operations</div></div>
+            <div class="metric good"><div class="v" id="s1-ratio">—</div><div class="l">fewer operations</div></div>
           </div>
         </div>
       </div>
       <div class="legend">
-        <span><i style="background:#d8dce8"></i> token din prompt</span>
-        <span><i style="background:var(--red);opacity:.8"></i> K/V recalculat (muncă irosită)</span>
-        <span><i style="background:var(--purple);opacity:.75"></i> K/V citit din cache</span>
-        <span><i style="background:var(--green)"></i> token nou (singurul calcul necesar)</span>
+        <span><i style="background:#d8dce8"></i> prompt token</span>
+        <span><i style="background:var(--red);opacity:.8"></i> recomputed K/V (wasted work)</span>
+        <span><i style="background:var(--purple);opacity:.75"></i> K/V read from cache</span>
+        <span><i style="background:var(--green)"></i> new token (the only computation needed)</span>
       </div>
-      <div class="note">Fiecare rând = un pas de generare. Observă cum în stânga roșul crește <b>pătratic</b> — exact costul pe care îl plătești când un load balancer naiv îți trimite conversația pe un pod fără cache. De-asta tokenii cache-uiți costă de 10× mai puțin la OpenAI &amp; co.</div>
+      <div class="note">Each row = one generation step. Notice how on the left the red grows <b>quadratically</b> — exactly the cost you pay when a naive load balancer sends your conversation to a pod with no cache. That's why cached tokens cost 10× less at OpenAI &amp; co.</div>
     </div>
   </div>
 </section>
@@ -212,40 +210,40 @@
 <!-- ════════ SIM 2: PAGED ATTENTION ════════ -->
 <section class="sim" id="s2">
   <div class="container">
-    <h2>📦 PagedAttention — inovația centrală din vLLM</h2>
-    <p class="lead">Nu știi dinainte cât de lung va fi un răspuns. Serverele clasice rezervau memorie GPU <em>contiguă</em> pentru lungimea maximă — risipă uriașă + fragmentare. vLLM împarte KV cache-ul în <strong>pagini mici</strong> alocate la cerere, oriunde e loc (ca memoria virtuală din OS).</p>
+    <h2>📦 PagedAttention — the core innovation in vLLM</h2>
+    <p class="lead">You don't know in advance how long a response will be. Classic servers reserved <em>contiguous</em> GPU memory for the maximum length — huge waste + fragmentation. vLLM splits the KV cache into <strong>small pages</strong> allocated on demand, wherever there's room (like virtual memory in an OS).</p>
     <div class="panel">
       <div class="controls">
-        <button class="btn" id="s2-play">▶ Pornește traficul</button>
+        <button class="btn" id="s2-play">▶ Start traffic</button>
         <button class="btn secondary" id="s2-reset">↺ Reset</button>
-        <span style="font-size:13px;color:var(--ink-soft)">Cereri identice intră în ambele sisteme. Lungimea reală a răspunsului e aleatorie (4–16 blocuri).</span>
+        <span style="font-size:13px;color:var(--ink-soft)">Identical requests enter both systems. The actual response length is random (4–16 blocks).</span>
       </div>
       <div class="two-col">
         <div>
-          <div class="col-title bad">❌ Alocare contiguă (rezervă max = 16 blocuri)</div>
+          <div class="col-title bad">❌ Contiguous allocation (reserves max = 16 blocks)</div>
           <div class="memgrid" id="s2-grid-c"></div>
           <div class="metrics">
-            <div class="metric"><div class="v" id="s2-util-c">0%</div><div class="l">memorie folosită util</div></div>
-            <div class="metric bad"><div class="v" id="s2-rej-c">0</div><div class="l">cereri respinse</div></div>
-            <div class="metric"><div class="v" id="s2-waste-c">0</div><div class="l">blocuri rezervate degeaba</div></div>
+            <div class="metric"><div class="v" id="s2-util-c">0%</div><div class="l">memory put to real use</div></div>
+            <div class="metric bad"><div class="v" id="s2-rej-c">0</div><div class="l">rejected requests</div></div>
+            <div class="metric"><div class="v" id="s2-waste-c">0</div><div class="l">blocks reserved for nothing</div></div>
           </div>
         </div>
         <div>
-          <div class="col-title good">✓ PagedAttention (alocă doar ce e nevoie, oriunde)</div>
+          <div class="col-title good">✓ PagedAttention (allocates only what's needed, anywhere)</div>
           <div class="memgrid" id="s2-grid-p"></div>
           <div class="metrics">
-            <div class="metric"><div class="v" id="s2-util-p">0%</div><div class="l">memorie folosită util</div></div>
-            <div class="metric good"><div class="v" id="s2-rej-p">0</div><div class="l">cereri respinse</div></div>
-            <div class="metric"><div class="v" id="s2-srv-p">0</div><div class="l">cereri servite</div></div>
+            <div class="metric"><div class="v" id="s2-util-p">0%</div><div class="l">memory put to real use</div></div>
+            <div class="metric good"><div class="v" id="s2-rej-p">0</div><div class="l">rejected requests</div></div>
+            <div class="metric"><div class="v" id="s2-srv-p">0</div><div class="l">requests served</div></div>
           </div>
         </div>
       </div>
       <div class="legend">
-        <span><i style="background:#eeede9"></i> bloc liber</span>
-        <span><i style="background:var(--accent)"></i> bloc folosit (o culoare per cerere)</span>
-        <span><i style="background:var(--accent);background-image:repeating-linear-gradient(45deg, rgba(255,255,255,0.55) 0 3px, transparent 3px 6px)"></i> rezervat dar nefolosit (risipă)</span>
+        <span><i style="background:#eeede9"></i> free block</span>
+        <span><i style="background:var(--accent)"></i> used block (one color per request)</span>
+        <span><i style="background:var(--accent);background-image:repeating-linear-gradient(45deg, rgba(255,255,255,0.55) 0 3px, transparent 3px 6px)"></i> reserved but unused (waste)</span>
       </div>
-      <div class="note">Stânga respinge cereri deși are blocuri libere — nu găsește <b>16 consecutive</b> și ține blocuri rezervate degeaba. Dreapta umple fiecare colț. Așa a obținut vLLM de la început throughput mult mai mare pe același GPU.</div>
+      <div class="note">The left side rejects requests even though it has free blocks — it can't find <b>16 consecutive</b> ones and keeps blocks reserved for nothing. The right side fills every corner. That's how vLLM achieved much higher throughput on the same GPU right from the start.</div>
     </div>
   </div>
 </section>
@@ -254,28 +252,28 @@
 <section class="sim" id="s3">
   <div class="container">
     <h2>🧭 Inference Scheduler — round-robin vs. prefix-aware</h2>
-    <p class="lead">6 utilizatori (culorile) poartă conversații multi-turn cu un model servit de 4 pod-uri. Fiecare pod ține în cache max. 3 conversații. Întrebarea LLM-D: <em>unde trimiți următorul mesaj?</em></p>
+    <p class="lead">6 users (the colors) hold multi-turn conversations with a model served by 4 pods. Each pod caches at most 3 conversations. The LLM-D question: <em>where do you send the next message?</em></p>
     <div class="panel">
       <div class="controls">
-        <button class="btn" id="s3-play">▶ Pornește traficul</button>
+        <button class="btn" id="s3-play">▶ Start traffic</button>
         <button class="btn secondary" id="s3-reset">↺ Reset</button>
-        <label class="toggle"><input type="checkbox" id="s3-mode"> <span>Rutare <b>prefix-aware</b> (LLM-D)</span></label>
+        <label class="toggle"><input type="checkbox" id="s3-mode"> <span><b>Prefix-aware</b> routing (LLM-D)</span></label>
       </div>
       <div class="metrics">
-        <div class="metric"><div class="v" id="s3-ttft">—</div><div class="l">TTFT mediu (ultimele 15)</div></div>
-        <div class="metric good"><div class="v" id="s3-hit">0%</div><div class="l">rată de cache hit</div></div>
-        <div class="metric bad"><div class="v" id="s3-recomp">0</div><div class="l">prefill-uri irosite (recompute)</div></div>
+        <div class="metric"><div class="v" id="s3-ttft">—</div><div class="l">avg TTFT (last 15)</div></div>
+        <div class="metric good"><div class="v" id="s3-hit">0%</div><div class="l">cache hit rate</div></div>
+        <div class="metric bad"><div class="v" id="s3-recomp">0</div><div class="l">wasted prefills (recompute)</div></div>
       </div>
       <div class="routing-stage" id="s3-stage">
-        <div class="gateway" id="s3-gw">⛩️ Gateway / Scheduler<small id="s3-gw-mode">mod: round-robin naiv</small></div>
+        <div class="gateway" id="s3-gw">⛩️ Gateway / Scheduler<small id="s3-gw-mode">mode: naive round-robin</small></div>
         <div class="pods" id="s3-pods"></div>
       </div>
       <div class="legend">
-        <span>🟢 inel verde la pod = cache hit</span>
-        <span>punctele gri sub pod = coada de așteptare</span>
-        <span>bulinele din pod = conversațiile aflate în KV cache (LRU, max 3)</span>
+        <span>🟢 green ring on a pod = cache hit</span>
+        <span>gray dots under a pod = waiting queue</span>
+        <span>dots inside a pod = conversations held in the KV cache (LRU, max 3)</span>
       </div>
-      <div class="note">Lasă-l să ruleze ~20s în fiecare mod și compară TTFT. Cu round-robin, conversațiile aterizează aiurea → recompute constant și cache-ul se „bate" (thrashing). Cu prefix-aware, fiecare conversație se lipește de pod-ul care o ține minte. La meetup: până la <b>57× mai rapid</b> pe workload-uri reale.</div>
+      <div class="note">Let it run ~20s in each mode and compare TTFT. With round-robin, conversations land all over the place → constant recompute and the cache "thrashes". With prefix-aware, each conversation sticks to the pod that remembers it. From the meetup: up to <b>57× faster</b> on real workloads.</div>
     </div>
   </div>
 </section>
@@ -283,40 +281,40 @@
 <!-- ════════ SIM 4: P/D DISAGG ════════ -->
 <section class="sim" id="s4">
   <div class="container">
-    <h2>✂️ Prefill/Decode Disaggregation — aceeași muncă, două echipe</h2>
-    <p class="lead">Același flux de cereri intră în două sisteme a câte 4 GPU-uri. Sus: fiecare GPU face și prefill și decode (monolitic). Jos: 2 GPU-uri doar prefill + 2 doar decode, cu transfer de KV cache între ele (NIXL).</p>
+    <h2>✂️ Prefill/Decode Disaggregation — same work, two teams</h2>
+    <p class="lead">The same stream of requests enters two systems of 4 GPUs each. Top: every GPU does both prefill and decode (monolithic). Bottom: 2 GPUs do only prefill + 2 only decode, with KV cache transfer between them (NIXL).</p>
     <div class="panel">
       <div class="controls">
-        <button class="btn" id="s4-play">▶ Pornește traficul</button>
+        <button class="btn" id="s4-play">▶ Start traffic</button>
         <button class="btn secondary" id="s4-reset">↺ Reset</button>
-        <div class="ctrl"><label>Trafic: o cerere la <b id="s4-rate-v">0.8</b>s</label><input type="range" id="s4-rate" min="4" max="30" value="8"></div>
+        <div class="ctrl"><label>Traffic: one request every <b id="s4-rate-v">0.8</b>s</label><input type="range" id="s4-rate" min="4" max="30" value="8"></div>
       </div>
       <div class="two-col">
         <div>
-          <div class="col-title bad">❌ Monolitic (4× GPU mixt)</div>
+          <div class="col-title bad">❌ Monolithic (4× mixed GPU)</div>
           <div id="s4-lanes-m"></div>
           <div class="metrics">
-            <div class="metric"><div class="v" id="s4-tps-m">0</div><div class="l">tokeni / s</div></div>
-            <div class="metric bad"><div class="v" id="s4-stall-m">0</div><div class="l">momente de „înghețare" a streamului</div></div>
+            <div class="metric"><div class="v" id="s4-tps-m">0</div><div class="l">tokens / s</div></div>
+            <div class="metric bad"><div class="v" id="s4-stall-m">0</div><div class="l">stream "freeze" moments</div></div>
           </div>
         </div>
         <div>
-          <div class="col-title good">✓ Disaggregat (2× prefill + 2× decode)</div>
+          <div class="col-title good">✓ Disaggregated (2× prefill + 2× decode)</div>
           <div id="s4-lanes-d"></div>
           <div class="metrics">
-            <div class="metric"><div class="v" id="s4-tps-d">0</div><div class="l">tokeni / s</div></div>
-            <div class="metric good"><div class="v" id="s4-stall-d">0</div><div class="l">momente de „înghețare" a streamului</div></div>
+            <div class="metric"><div class="v" id="s4-tps-d">0</div><div class="l">tokens / s</div></div>
+            <div class="metric good"><div class="v" id="s4-stall-d">0</div><div class="l">stream "freeze" moments</div></div>
           </div>
         </div>
       </div>
       <div class="legend">
-        <span><i style="background:var(--orange)"></i> prefill (procesare prompt)</span>
-        <span><i style="background:var(--red)"></i> prefill care <b>blochează</b> decode-uri active (stall!)</span>
-        <span><i style="background:var(--accent)"></i> decode (tokeni generați, continuous batching)</span>
-        <span><i style="background:var(--purple)"></i> transfer KV (handoff)</span>
+        <span><i style="background:var(--orange)"></i> prefill (prompt processing)</span>
+        <span><i style="background:var(--red)"></i> prefill that <b>blocks</b> active decodes (stall!)</span>
+        <span><i style="background:var(--accent)"></i> decode (generated tokens, continuous batching)</span>
+        <span><i style="background:var(--purple)"></i> KV transfer (handoff)</span>
         <span><i style="background:#e3e1dc"></i> idle</span>
       </div>
-      <div class="note">În stânga, când sosește un prompt lung, GPU-ul îl bagă în față și <b>toate streamurile de chat de pe el îngheață</b> (feliile roșii) — userul vede textul oprindu-se. În dreapta, decoderii nu sunt deranjați niciodată. Nuanța de la meetup: merită mai ales la concurență medie (~1,5× throughput), nu mereu.</div>
+      <div class="note">On the left, when a long prompt arrives, the GPU pushes it to the front and <b>every chat stream on that GPU freezes</b> (the red slices) — the user sees the text stop. On the right, the decoders are never disturbed. The nuance from the meetup: it pays off mostly at medium concurrency (~1.5× throughput), not always.</div>
     </div>
   </div>
 </section>
@@ -325,33 +323,33 @@
 <section class="sim" id="s5">
   <div class="container">
     <h2>🗄️ KV Offloading — GPU → RAM → Disk</h2>
-    <p class="lead">Pe măsură ce cresc utilizatorii, KV cache-ul total crește peste memoria GPU. Fără niveluri suplimentare, cache-ul vechi e aruncat (evicted) și totul se recalculează — throughput-ul se prăbușește. Activează nivelurile și vezi diferența.</p>
+    <p class="lead">As users grow, the total KV cache outgrows GPU memory. Without extra tiers, old cache gets evicted and everything is recomputed — throughput collapses. Enable the tiers and see the difference.</p>
     <div class="panel">
       <div class="controls">
-        <button class="btn" id="s5-play">▶ Pornește creșterea</button>
+        <button class="btn" id="s5-play">▶ Start growth</button>
         <button class="btn secondary" id="s5-reset">↺ Reset</button>
-        <label class="toggle"><input type="checkbox" id="s5-cpu" checked> <span>Nivel <b>CPU / RAM</b></span></label>
-        <label class="toggle"><input type="checkbox" id="s5-disk" checked> <span>Nivel <b>Storage / Disk</b></span></label>
+        <label class="toggle"><input type="checkbox" id="s5-cpu" checked> <span><b>CPU / RAM</b> tier</span></label>
+        <label class="toggle"><input type="checkbox" id="s5-disk" checked> <span><b>Storage / Disk</b> tier</span></label>
       </div>
       <div class="metrics">
-        <div class="metric"><div class="v" id="s5-users">0</div><div class="l">utilizatori activi</div></div>
-        <div class="metric good"><div class="v" id="s5-thr">0</div><div class="l">throughput (tokeni/s)</div></div>
-        <div class="metric bad"><div class="v" id="s5-evict">0%</div><div class="l">din cache pierdut (recompute)</div></div>
+        <div class="metric"><div class="v" id="s5-users">0</div><div class="l">active users</div></div>
+        <div class="metric good"><div class="v" id="s5-thr">0</div><div class="l">throughput (tokens/s)</div></div>
+        <div class="metric bad"><div class="v" id="s5-evict">0%</div><div class="l">of cache lost (recompute)</div></div>
       </div>
       <div class="tierbar">
-        <div class="tl"><span>⚡ GPU (HBM) — rapid, mic, scump</span><span id="s5-l1">0 / 150</span></div>
+        <div class="tl"><span>⚡ GPU (HBM) — fast, small, expensive</span><span id="s5-l1">0 / 150</span></div>
         <div class="track"><div class="fill" id="s5-b1" style="background:var(--accent);width:0%"></div></div>
       </div>
       <div class="tierbar">
-        <div class="tl"><span>🐇 CPU / RAM — mediu</span><span id="s5-l2">0 / 450</span></div>
+        <div class="tl"><span>🐇 CPU / RAM — medium</span><span id="s5-l2">0 / 450</span></div>
         <div class="track"><div class="fill" id="s5-b2" style="background:var(--green);width:0%"></div></div>
       </div>
       <div class="tierbar">
-        <div class="tl"><span>🐢 Disk / POSIX — uriaș, mai lent</span><span id="s5-l3">0 / 1350</span></div>
+        <div class="tl"><span>🐢 Disk / POSIX — huge, slower</span><span id="s5-l3">0 / 1350</span></div>
         <div class="track"><div class="fill" id="s5-b3" style="background:var(--orange);width:0%"></div></div>
       </div>
       <canvas id="s5-chart" width="900" height="220"></canvas>
-      <div class="note">Graficul arată throughput-ul în timp ce utilizatorii cresc. Fiecare „genunchi" = saturarea unui nivel. Debifează CPU și Disk și repornește: vei vedea prăbușirea de la primul zid. Cu toate nivelurile, același hardware susține de câteva ori mai mulți utilizatori — exact graficul de la meetup.</div>
+      <div class="note">The chart shows throughput as users grow. Each "knee" = one tier saturating. Untick CPU and Disk and restart: you'll see the collapse at the very first wall. With all tiers on, the same hardware sustains several times more users — exactly the chart from the meetup.</div>
     </div>
   </div>
 </section>
@@ -359,30 +357,30 @@
 <!-- ════════ SIM 6: MOE + EPLB ════════ -->
 <section class="sim" id="s6">
   <div class="container">
-    <h2>🏥 MoE + EPLB — echilibrarea experților</h2>
-    <p class="lead">Un model MoE rutează fiecare token către câțiva „experți". În producție, distribuția tokenilor e <strong>dezechilibrată</strong>: unii experți sunt fierbinți, alții stau degeaba. Întreg sistemul merge cu viteza <em>celui mai aglomerat</em> GPU. EPLB replică experții fierbinți și rebalansează.</p>
+    <h2>🏥 MoE + EPLB — balancing the experts</h2>
+    <p class="lead">An MoE model routes each token to a few "experts". In production, the token distribution is <strong>imbalanced</strong>: some experts run hot, others sit idle. The whole system moves at the speed of the <em>busiest</em> GPU. EPLB replicates the hot experts and rebalances.</p>
     <div class="panel">
       <div class="controls">
-        <button class="btn" id="s6-play">▶ Pornește tokenii</button>
+        <button class="btn" id="s6-play">▶ Start tokens</button>
         <button class="btn secondary" id="s6-reset">↺ Reset</button>
-        <label class="toggle"><input type="checkbox" id="s6-eplb"> <span><b>EPLB</b> activat (replicare + rebalansare)</span></label>
-        <button class="btn secondary" id="s6-shift">🔀 Schimbă workload-ul</button>
+        <label class="toggle"><input type="checkbox" id="s6-eplb"> <span><b>EPLB</b> enabled (replication + rebalancing)</span></label>
+        <button class="btn secondary" id="s6-shift">🔀 Shift the workload</button>
       </div>
       <div class="metrics">
-        <div class="metric good"><div class="v" id="s6-thr">—</div><div class="l">throughput relativ</div></div>
-        <div class="metric bad"><div class="v" id="s6-imb">—</div><div class="l">dezechilibru (max/medie)</div></div>
-        <div class="metric"><div class="v" id="s6-alloc">uniform</div><div class="l">alocare sloturi GPU</div></div>
+        <div class="metric good"><div class="v" id="s6-thr">—</div><div class="l">relative throughput</div></div>
+        <div class="metric bad"><div class="v" id="s6-imb">—</div><div class="l">imbalance (max/avg)</div></div>
+        <div class="metric"><div class="v" id="s6-alloc">uniform</div><div class="l">GPU slot allocation</div></div>
       </div>
       <div class="experts" id="s6-slots"></div>
       <div class="slot-labels" id="s6-labels"></div>
-      <div class="note">16 sloturi GPU, 8 experți (E1 = cel mai cerut). Fără EPLB fiecare expert primește fix 2 sloturi → barele lui E1 ies prin tavan (contur roșu = bottleneck) și restul așteaptă după el. Cu EPLB, E1 primește mai multe sloturi, sarcina per slot se nivelează și throughput-ul crește. Apasă „Schimbă workload-ul" cu EPLB pornit ca să vezi rebalansarea online de care vorbea Tyler (azi costă ~0,25s în producție).</div>
+      <div class="note">16 GPU slots, 8 experts (E1 = the most requested). Without EPLB every expert gets exactly 2 slots → E1's bars shoot through the ceiling (red outline = bottleneck) and everyone else waits on it. With EPLB, E1 gets more slots, the per-slot load evens out and throughput goes up. Press "Shift the workload" with EPLB on to see the online rebalancing Tyler talked about (today it costs ~0.25s in production).</div>
     </div>
   </div>
 </section>
 
 <footer>
   <div class="container">
-    Simulatoare educaționale — cifrele sunt ilustrative, mecanismele sunt cele reale. · <a href="llmd-explicat.html">Ghidul LLM-D explicat</a> · <a href="https://llm-d.ai">llm-d.ai</a>
+    Educational simulators — the numbers are illustrative, the mechanisms are the real ones. · <a href="llmd-explicat.en.html">The LLM-D explainer guide</a> · <a href="https://llm-d.ai">llm-d.ai</a>
   </div>
 </footer>
 
@@ -410,13 +408,13 @@ sims.s1 = (() => {
   let timer = null, step = 0, promptLen = 6, opsNo = 0, opsYes = 0;
   const MAXGEN = 10;
   function reset() {
-    stop(); step = 0; opsNo = promptLen; opsYes = promptLen; // ambele plătesc prefill-ul o dată
+    stop(); step = 0; opsNo = promptLen; opsYes = promptLen; // both pay for the prefill once
     render();
   }
   function render() {
     for (const [gridId, cached] of [['s1-grid-no', false], ['s1-grid-yes', true]]) {
       const g = $(gridId); g.innerHTML = '';
-      // rândul de prompt
+      // the prompt row
       const pr = document.createElement('div'); pr.className = 'kvrow';
       for (let i = 0; i < promptLen; i++) pr.appendChild(cell('prompt'));
       g.appendChild(pr);
@@ -436,17 +434,17 @@ sims.s1 = (() => {
   function tick() {
     if (step >= MAXGEN) { stop(); return; }
     step++;
-    opsNo += promptLen + step;   // recalculează tot + tokenul nou
-    opsYes += 1;                 // doar tokenul nou
+    opsNo += promptLen + step;   // recomputes everything + the new token
+    opsYes += 1;                 // only the new token
     render();
   }
   function start() {
     if (timer) return;
     const speed = +$('s1-speed').value;
     timer = setInterval(tick, 1100 - speed * 95);
-    $('s1-play').textContent = '⏸ Pauză';
+    $('s1-play').textContent = '⏸ Pause';
   }
-  function stop() { clearInterval(timer); timer = null; $('s1-play').textContent = '▶ Pornește generarea'; }
+  function stop() { clearInterval(timer); timer = null; $('s1-play').textContent = '▶ Start generation'; }
   $('s1-play').addEventListener('click', () => timer ? stop() : start());
   $('s1-reset').addEventListener('click', reset);
   $('s1-pl').addEventListener('input', e => { promptLen = +e.target.value; $('s1-pl-v').textContent = promptLen; reset(); });
@@ -476,7 +474,7 @@ sims.s2 = (() => {
     }
   }
   function allocContig(p, req) {
-    // caută MAXLEN blocuri consecutive
+    // looks for MAXLEN consecutive blocks
     let run = 0;
     for (let i = 0; i < N; i++) {
       run = p.blocks[i] ? 0 : run + 1;
@@ -542,8 +540,8 @@ sims.s2 = (() => {
     $('s2-waste-c').textContent = panels.c.reqs.reduce((a, r) => a + (MAXLEN - r.len), 0);
     $('s2-srv-p').textContent = panels.p.served;
   }
-  function start() { if (!timer) { timer = setInterval(tick, 700); $('s2-play').textContent = '⏸ Pauză'; } }
-  function stop() { clearInterval(timer); timer = null; $('s2-play').textContent = '▶ Pornește traficul'; }
+  function start() { if (!timer) { timer = setInterval(tick, 700); $('s2-play').textContent = '⏸ Pause'; } }
+  function stop() { clearInterval(timer); timer = null; $('s2-play').textContent = '▶ Start traffic'; }
   $('s2-play').addEventListener('click', () => timer ? stop() : start());
   $('s2-reset').addEventListener('click', () => { stop(); buildGrids(); render(); });
   buildGrids(); render();
@@ -560,7 +558,7 @@ sims.s3 = (() => {
     pods = [];
     for (let i = 0; i < NPODS; i++) {
       const el = document.createElement('div'); el.className = 'pod';
-      el.innerHTML = `<h5>Pod ${i + 1} (vLLM)</h5><div class="cache-row"></div><div class="qrow"></div><div class="plabel">liber</div>`;
+      el.innerHTML = `<h5>Pod ${i + 1} (vLLM)</h5><div class="cache-row"></div><div class="qrow"></div><div class="plabel">idle</div>`;
       wrap.appendChild(el);
       pods.push({ el, cache: [], queue: [], busyUntil: 0, current: null });
     }
@@ -607,7 +605,7 @@ sims.s3 = (() => {
     for (const pod of pods) {
       if (pod.current && now >= pod.busyUntil) {
         const r = pod.current;
-        // după procesare conversația intră în cache (LRU)
+        // after processing, the conversation enters the cache (LRU)
         const idx = pod.cache.indexOf(r.conv);
         if (idx >= 0) pod.cache.splice(idx, 1);
         pod.cache.push(r.conv);
@@ -619,7 +617,7 @@ sims.s3 = (() => {
       }
       if (!pod.current && pod.queue.length) {
         const r = pod.queue.shift();
-        // re-verifică hit-ul în momentul procesării
+        // re-check the hit at processing time
         r.hit = pod.cache.includes(r.conv);
         const dur = r.hit ? 350 : Math.min(900 + r.turn * 280, 2600);
         pod.current = r; pod.busyUntil = now + dur;
@@ -633,7 +631,7 @@ sims.s3 = (() => {
     const qr = pod.el.querySelector('.qrow'); qr.innerHTML = '';
     for (const q of pod.queue) { const d = document.createElement('div'); d.className = 'qdot'; d.style.background = q.color; qr.appendChild(d); }
     pod.el.classList.toggle('busy', !!pod.current);
-    pod.el.querySelector('.plabel').textContent = pod.current ? (pod.current.hit ? '⚡ hit — răspunde…' : '🔥 prefill complet…') : 'liber';
+    pod.el.querySelector('.plabel').textContent = pod.current ? (pod.current.hit ? '⚡ hit — answering…' : '🔥 full prefill…') : 'idle';
   }
   function renderStats() {
     $('s3-ttft').textContent = latencies.length ? Math.round(latencies.reduce((a, b) => a + b) / latencies.length) + ' ms' : '—';
@@ -644,13 +642,13 @@ sims.s3 = (() => {
     if (timer) return;
     timer = setInterval(dispatch, 750);
     loopT = setInterval(loop, 80);
-    $('s3-play').textContent = '⏸ Pauză';
+    $('s3-play').textContent = '⏸ Pause';
   }
-  function stop() { clearInterval(timer); clearInterval(loopT); timer = loopT = null; $('s3-play').textContent = '▶ Pornește traficul'; }
+  function stop() { clearInterval(timer); clearInterval(loopT); timer = loopT = null; $('s3-play').textContent = '▶ Start traffic'; }
   $('s3-play').addEventListener('click', () => timer ? stop() : start());
   $('s3-reset').addEventListener('click', reset);
   $('s3-mode').addEventListener('change', e => {
-    $('s3-gw-mode').textContent = 'mod: ' + (e.target.checked ? 'prefix-aware + load-aware (LLM-D)' : 'round-robin naiv');
+    $('s3-gw-mode').textContent = 'mode: ' + (e.target.checked ? 'prefix-aware + load-aware (LLM-D)' : 'naive round-robin');
   });
   reset();
   return { stop };
@@ -667,7 +665,7 @@ sims.s4 = (() => {
     for (let i = 0; i < 4; i++) {
       const role = mode === 'mono' ? 'both' : (i < 2 ? 'prefill' : 'decode');
       const lw = document.createElement('div'); lw.className = 'lane-wrap';
-      const label = mode === 'mono' ? `GPU ${i + 1} — mixt` : `GPU ${i + 1} — ${role === 'prefill' ? '🔥 prefill' : '💧 decode'}`;
+      const label = mode === 'mono' ? `GPU ${i + 1} — mixed` : `GPU ${i + 1} — ${role === 'prefill' ? '🔥 prefill' : '💧 decode'}`;
       lw.innerHTML = `<div class="lane-label">${label}</div><div class="lane"></div>`;
       wrap.appendChild(lw);
       gpus.push({ role, prefQ: [], decodes: [], lane: lw.querySelector('.lane') });
@@ -703,7 +701,7 @@ sims.s4 = (() => {
           }
         }
       } else if (g.decodes.length) {
-        // continuous batching: toate decode-urile active emit câte un token
+        // continuous batching: every active decode emits one token
         for (let i = g.decodes.length - 1; i >= 0; i--) {
           g.decodes[i].toks--; sys.tokens++;
           if (g.decodes[i].toks <= 0) g.decodes.splice(i, 1);
@@ -712,7 +710,7 @@ sims.s4 = (() => {
       } else addSlice(g, 'i');
     }
     sys.tokenLog.push(sys.tokens);
-    if (sys.tokenLog.length > 25) sys.tokenLog.shift(); // fereastră de 3s
+    if (sys.tokenLog.length > 25) sys.tokenLog.shift(); // 3s window
   }
   function tps(sys) {
     if (sys.tokenLog.length < 2) return 0;
@@ -720,7 +718,7 @@ sims.s4 = (() => {
     return Math.round((sys.tokenLog[sys.tokenLog.length - 1] - sys.tokenLog[0]) / dt);
   }
   function tick() {
-    const interval = +$('s4-rate').value * 100; // ms între cereri
+    const interval = +$('s4-rate').value * 100; // ms between requests
     spawnAcc += TICK;
     while (spawnAcc >= interval) {
       spawnAcc -= interval;
@@ -739,8 +737,8 @@ sims.s4 = (() => {
     $('s4-tps-m').textContent = '0'; $('s4-stall-m').textContent = '0';
     $('s4-tps-d').textContent = '0'; $('s4-stall-d').textContent = '0';
   }
-  function start() { if (!timer) { timer = setInterval(tick, TICK); $('s4-play').textContent = '⏸ Pauză'; } }
-  function stop() { clearInterval(timer); timer = null; $('s4-play').textContent = '▶ Pornește traficul'; }
+  function start() { if (!timer) { timer = setInterval(tick, TICK); $('s4-play').textContent = '⏸ Pause'; } }
+  function stop() { clearInterval(timer); timer = null; $('s4-play').textContent = '▶ Start traffic'; }
   $('s4-play').addEventListener('click', () => timer ? stop() : start());
   $('s4-reset').addEventListener('click', reset);
   $('s4-rate').addEventListener('input', e => $('s4-rate-v').textContent = (e.target.value / 10).toFixed(1));
@@ -771,7 +769,7 @@ sims.s5 = (() => {
     const avgCost = fr('gpu') * COST.gpu + fr('cpu') * COST.cpu + fr('disk') * COST.disk + fr('evicted') * COST.miss;
     const thr = Math.round(BUDGET / Math.max(avgCost, 0.001));
     history.push(thr);
-    // marchează saturarea fiecărui nivel
+    // mark the saturation of each tier
     if (d.gpu >= CAP[0] && !marks.includes('gpu')) marks.push('gpu', history.length);
     if (d.cpu >= CAP[1] && !marks.includes('cpu')) marks.push('cpu', history.length);
     if (d.disk >= CAP[2] && !marks.includes('disk')) marks.push('disk', history.length);
@@ -786,8 +784,8 @@ sims.s5 = (() => {
     $('s5-b2').style.width = (d.cpu / CAP[1] * 100) + '%';
     $('s5-b3').style.width = (d.disk / CAP[2] * 100) + '%';
     $('s5-l1').textContent = `${Math.round(d.gpu)} / ${CAP[0]}`;
-    $('s5-l2').textContent = $('s5-cpu').checked ? `${Math.round(d.cpu)} / ${CAP[1]}` : 'dezactivat';
-    $('s5-l3').textContent = $('s5-disk').checked ? `${Math.round(d.disk)} / ${CAP[2]}` : 'dezactivat';
+    $('s5-l2').textContent = $('s5-cpu').checked ? `${Math.round(d.cpu)} / ${CAP[1]}` : 'disabled';
+    $('s5-l3').textContent = $('s5-disk').checked ? `${Math.round(d.disk)} / ${CAP[2]}` : 'disabled';
     drawChart();
   }
   function drawChart() {
@@ -796,15 +794,15 @@ sims.s5 = (() => {
     ctx.strokeStyle = '#e8e6e1'; ctx.beginPath();
     ctx.moveTo(pad, 10); ctx.lineTo(pad, H - 24); ctx.lineTo(W - 8, H - 24); ctx.stroke();
     ctx.fillStyle = '#5c6273'; ctx.font = '11px sans-serif';
-    ctx.fillText('throughput', 6, 18); ctx.fillText('timp / utilizatori →', W - 130, H - 8);
+    ctx.fillText('throughput', 6, 18); ctx.fillText('time / users →', W - 130, H - 8);
     if (history.length < 2) return;
     const maxT = 1050, n = Math.max(history.length, 200);
     const x = i => pad + (W - pad - 12) * i / (n - 1);
     const y = v => (H - 24) - (H - 44) * v / maxT;
-    // markere de saturare
+    // saturation markers
     ctx.setLineDash([4, 4]);
     const markColors = { gpu: '#4361ee', cpu: '#2a9d68', disk: '#e07a2f' };
-    const markNames = { gpu: 'GPU plin', cpu: 'RAM plin', disk: 'Disk plin' };
+    const markNames = { gpu: 'GPU full', cpu: 'RAM full', disk: 'Disk full' };
     for (let i = 0; i < marks.length; i += 2) {
       const k = marks[i], at = marks[i + 1];
       ctx.strokeStyle = markColors[k]; ctx.beginPath();
@@ -820,8 +818,8 @@ sims.s5 = (() => {
     stop(); usersN = 0; S = 0; history = []; marks = [];
     render(distribution(), 0);
   }
-  function start() { if (!timer) { timer = setInterval(tick, 120); $('s5-play').textContent = '⏸ Pauză'; } }
-  function stop() { clearInterval(timer); timer = null; $('s5-play').textContent = '▶ Pornește creșterea'; }
+  function start() { if (!timer) { timer = setInterval(tick, 120); $('s5-play').textContent = '⏸ Pause'; } }
+  function stop() { clearInterval(timer); timer = null; $('s5-play').textContent = '▶ Start growth'; }
   $('s5-play').addEventListener('click', () => timer ? stop() : start());
   $('s5-reset').addEventListener('click', reset);
   $('s5-cpu').addEventListener('change', reset);
@@ -836,13 +834,13 @@ sims.s6 = (() => {
   let timer = null, weights, slots, loads, tokensIn = 0, thrAvg = null;
   function newWeights() {
     const raw = Array.from({ length: NEXP }, (_, i) => 1 / Math.pow(i + 1, rand(0.9, 1.4)));
-    // amestecă puțin ca să nu fie mereu E1 cel fierbinte după shift
+    // shuffle a bit so E1 isn't always the hot one after a shift
     const sum = raw.reduce((a, b) => a + b);
     weights = raw.map(w => w / sum);
   }
   function assignSlots() {
     if ($('s6-eplb').checked) {
-      // sloturi proporționale cu sarcina (largest remainder), min 1 per expert
+      // slots proportional to load (largest remainder), min 1 per expert
       const ideal = weights.map(w => w * NSLOTS);
       const base = ideal.map(v => Math.max(1, Math.floor(v)));
       let used = base.reduce((a, b) => a + b);
@@ -852,11 +850,11 @@ sims.s6 = (() => {
       while (used > NSLOTS) { const k = base.findIndex((v, i) => v > 1 && i === base.length - 1 - base.slice().reverse().findIndex(x => x > 1)); base[k > -1 ? k : base.indexOf(Math.max(...base))]--; used--; }
       slots = [];
       base.forEach((n, e) => { for (let k = 0; k < n; k++) slots.push(e); });
-      $('s6-alloc').textContent = 'proporțională (EPLB)';
+      $('s6-alloc').textContent = 'proportional (EPLB)';
     } else {
       slots = [];
       for (let e = 0; e < NEXP; e++) { slots.push(e, e); }
-      $('s6-alloc').textContent = 'uniformă (2 / expert)';
+      $('s6-alloc').textContent = 'uniform (2 / expert)';
     }
     buildBars();
   }
@@ -880,10 +878,10 @@ sims.s6 = (() => {
     return NEXP - 1;
   }
   function tick() {
-    // sosesc ~12 tokeni per tick
+    // ~12 tokens arrive per tick
     for (let n = 0; n < 12; n++) {
       const e = pickExpert();
-      // tokenul merge la replica cea mai liberă a expertului
+      // the token goes to the expert's least-loaded replica
       let best = -1;
       for (let s = 0; s < NSLOTS; s++) if (slots[s] === e && (best < 0 || loads[s] < loads[best])) best = s;
       loads[best]++;
@@ -904,7 +902,7 @@ sims.s6 = (() => {
     const maxL = Math.max(...loads);
     const avg = loads.reduce((a, b) => a + b) / NSLOTS;
     const imb = maxL / Math.max(avg, 0.001);
-    // toată fereastra durează cât slotul cel mai încărcat → throughput ∝ 1/maxL
+    // the whole window takes as long as the busiest slot → throughput ∝ 1/maxL
     const thr = Math.round(WINDOW_TOKENS / maxL * 100);
     thrAvg = thrAvg === null ? thr : Math.round(thrAvg * 0.6 + thr * 0.4);
     $('s6-thr').textContent = thrAvg;
@@ -915,8 +913,8 @@ sims.s6 = (() => {
     stop(); newWeights(); assignSlots(); tokensIn = 0; thrAvg = null;
     $('s6-thr').textContent = '—'; $('s6-imb').textContent = '—';
   }
-  function start() { if (!timer) { timer = setInterval(tick, 120); $('s6-play').textContent = '⏸ Pauză'; } }
-  function stop() { clearInterval(timer); timer = null; $('s6-play').textContent = '▶ Pornește tokenii'; }
+  function start() { if (!timer) { timer = setInterval(tick, 120); $('s6-play').textContent = '⏸ Pause'; } }
+  function stop() { clearInterval(timer); timer = null; $('s6-play').textContent = '▶ Start tokens'; }
   $('s6-play').addEventListener('click', () => timer ? stop() : start());
   $('s6-reset').addEventListener('click', reset);
   $('s6-eplb').addEventListener('change', () => { assignSlots(); tokensIn = 0; thrAvg = null; });
