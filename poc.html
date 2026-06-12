@@ -49,6 +49,17 @@
   .rescard p { font-size: 13.5px; color: var(--ink-soft); margin-top: 6px; }
   footer { padding: 24px 0 44px; text-align: center; color: var(--ink-soft); font-size: 13.5px; }
   footer a { color: var(--accent); }
+  .roadmap h3 { font-size: 18px; margin-bottom: 12px; }
+  .rm-row { display: flex; gap: 12px; align-items: flex-start; padding: 9px 0; border-top: 1px solid var(--border); }
+  .rm-badge { flex: none; min-width: 86px; text-align: center; font-size: 12px; font-weight: 800;
+    padding: 4px 10px; border-radius: 999px; }
+  .rm-badge.done { background: var(--green-soft); color: var(--green); }
+  .rm-badge.next { background: var(--orange-soft); color: var(--orange); }
+  .rm-badge.plan { background: var(--accent-soft); color: var(--accent); }
+  .rm-badge.stretch { background: var(--purple-soft); color: var(--purple); }
+  .rm-text { font-size: 14px; }
+  .rm-text b { display: block; font-size: 14.5px; }
+  .rm-text span { color: var(--ink-soft); font-size: 13.5px; }
 </style>
 </head>
 <body>
@@ -95,6 +106,11 @@
       <p id="rb-note">Fără cache de refolosit, EPP a distribuit cererile pe toate pod-urile → load balancing. Două comportamente opuse, același scheduler.</p>
     </div>
   </div>
+
+  <div class="panel roadmap">
+    <h3 id="rm-title">🧭 Roadmap pe i9 — ce urmează</h3>
+    <div id="rm-rows"></div>
+  </div>
 </div>
 
 <footer>
@@ -133,6 +149,18 @@ const I18N = {
     extproc: 'ext-proc: „pe cine aleg?"',
     metrics: 'metrici + hartă prefix-cache',
     httproute: 'HTTPRoute',
+    rmTitle: '🧭 Roadmap pe i9 — ce urmează (detalii în ROADMAP.md din repo-ul de infra)',
+    rmStatus: { done: '✅ măsurat', next: '🔜 următorul', plan: '📋 planificat', stretch: '🧪 stretch' },
+    roadmap: [
+      { s: 'done', b: 'Faza A', t: 'Rutare prefix-aware', d: '12 cereri, același prefix → același pod (12/12). Validat live pe 12.06.2026.' },
+      { s: 'done', b: 'Faza B', t: 'Load spreading', d: 'Prefixe distincte → distribuite 3/6/3 pe toate pod-urile.' },
+      { s: 'next', b: 'Faza C', t: 'P/D disaggregation (transfer KV simulat)', d: 'Pod-uri separate de prefill și decode; sim-ul are flag-uri de latență de transfer (simulăm RDMA vs. TCP). Măsurăm TTFT cu/fără disaggregation.' },
+      { s: 'plan', b: 'Faza D', t: 'Predicted-latency scheduling (XGBoost în LB)', d: 'Sidecars de training+predicție pe EPP, rutare pe SLO headroom cu headere x-slo-ttft-ms. Punem un pod intenționat lent — învață modelul să-l evite?' },
+      { s: 'plan', b: 'Faza E', t: 'vLLM real pe CPU', d: 'Qwen2.5-0.5B pe 2–3 replici vLLM CPU în InferencePool (VM redimensionat la 16–20 vCPU). Faza A repetată cu prefill real.' },
+      { s: 'plan', b: 'Faza F', t: 'Multi-nod', d: 'Al doilea VM ca worker k3s, replici cu anti-affinity pe noduri, plus LeaderWorkerSet demonstrativ.' },
+      { s: 'plan', b: 'Faza G', t: 'Observabilitate + reziliență', d: 'Prometheus + Grafana pe metricile vLLM/EPP; failure injection în sim-uri (rate_limit, server_error) — cum reacționează gateway-ul.' },
+      { s: 'stretch', b: 'Faza H', t: 'NIXL pe bune', d: 'Benchmark DRAM-to-DRAM cu biblioteca reală de transfer (UCX/TCP) între două procese/VM-uri — costul real al handoff-ului P/D.' },
+    ],
   },
   en: {
     htmlLang: 'en',
@@ -161,6 +189,18 @@ const I18N = {
     extproc: 'ext-proc: “who serves?”',
     metrics: 'metrics + prefix-cache map',
     httproute: 'HTTPRoute',
+    rmTitle: '🧭 i9 roadmap — what comes next (details in ROADMAP.md in the infra repo)',
+    rmStatus: { done: '✅ measured', next: '🔜 up next', plan: '📋 planned', stretch: '🧪 stretch' },
+    roadmap: [
+      { s: 'done', b: 'Phase A', t: 'Prefix-aware routing', d: '12 requests, same prefix → same pod (12/12). Validated live on Jun 12, 2026.' },
+      { s: 'done', b: 'Phase B', t: 'Load spreading', d: 'Distinct prefixes → spread 3/6/3 across all pods.' },
+      { s: 'next', b: 'Phase C', t: 'P/D disaggregation (simulated KV transfer)', d: 'Separate prefill and decode pods; the sim has transfer-latency flags (we simulate RDMA vs. TCP). Measure TTFT with/without disaggregation.' },
+      { s: 'plan', b: 'Phase D', t: 'Predicted-latency scheduling (XGBoost in the LB)', d: 'Training+prediction sidecars on the EPP, routing on SLO headroom via x-slo-ttft-ms headers. We make one pod deliberately slow — does the model learn to avoid it?' },
+      { s: 'plan', b: 'Phase E', t: 'Real vLLM on CPU', d: 'Qwen2.5-0.5B on 2–3 vLLM CPU replicas inside the InferencePool (VM resized to 16–20 vCPU). Phase A repeated with real prefill.' },
+      { s: 'plan', b: 'Phase F', t: 'Multi-node', d: 'A second VM joins k3s as a worker, replicas anti-affined across nodes, plus a demonstrative LeaderWorkerSet.' },
+      { s: 'plan', b: 'Phase G', t: 'Observability + resilience', d: 'Prometheus + Grafana on vLLM/EPP metrics; failure injection in the sims (rate_limit, server_error) — how does the gateway react.' },
+      { s: 'stretch', b: 'Phase H', t: 'Real NIXL', d: 'DRAM-to-DRAM benchmark with the real transfer library (UCX/TCP) between two processes/VMs — the true cost of the P/D handoff.' },
+    ],
   }
 };
 
@@ -219,6 +259,17 @@ function render() {
   d3.select('#rb-title').text(L.rbTitle);
   d3.select('#rb-note').text(L.rbNote);
   d3.select('#t-footer').text(L.footer);
+
+  d3.select('#rm-title').text(L.rmTitle);
+  const rows = d3.select('#rm-rows').html('');
+  L.roadmap.forEach(r => {
+    const row = rows.append('div').attr('class', 'rm-row');
+    row.append('div').attr('class', 'rm-badge ' + r.s).text(r.b);
+    row.append('div').attr('class', 'rm-badge ' + r.s).style('min-width', '92px').text(L.rmStatus[r.s]);
+    const tx = row.append('div').attr('class', 'rm-text');
+    tx.append('b').text(r.t);
+    tx.append('span').text(r.d);
+  });
 
   svgRoot.selectAll('*').remove();
   svg = svgRoot.append('g');
